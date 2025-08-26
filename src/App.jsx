@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import './App.css'
 
@@ -172,7 +172,7 @@ function SettingsScreen() {
 // メインAppコンポーネント
 function App() {
   return (
-    <Router>
+    <Router basename="/VoiceLog_test">
       <div className="app">
         <nav className="navigation">
           <div className="nav-container">
