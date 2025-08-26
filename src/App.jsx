@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import './App.css'
 
@@ -171,8 +171,11 @@ function SettingsScreen() {
 
 // メインAppコンポーネント
 function App() {
+  // 開発環境と本番環境でbasenameを分岐
+  const basename = window.location.hostname === 'localhost' ? '' : '/VoiceLog_test';
+  
   return (
-    <Router basename="/VoiceLog_test">
+    <Router basename={basename}>
       <div className="app">
         <nav className="navigation">
           <div className="nav-container">
