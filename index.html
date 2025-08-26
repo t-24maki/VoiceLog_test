@@ -21,16 +21,20 @@
       //
       // This is necessary because GitHub Pages doesn't support SPA routing
       // and will return a 404 for any route that doesn't exist.
-      var pathSegmentsToKeep = 1;
+      
+      // 開発環境では実行しない
+      if (window.location.hostname !== 'localhost') {
+        var pathSegmentsToKeep = 1;
 
-      var l = window.location;
-      l.replace(
-        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
-        l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
-        l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
-        (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
-        l.hash
-      );
+        var l = window.location;
+        l.replace(
+          l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+          l.pathname.split('/').slice(0, 1 + pathSegmentsToKeep).join('/') + '/?/' +
+          l.pathname.slice(1).split('/').slice(pathSegmentsToKeep).join('/').replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash
+        );
+      }
     </script>
     <script type="module" crossorigin src="/VoiceLog_test/assets/index-CMNrsE4R.js"></script>
     <link rel="stylesheet" crossorigin href="/VoiceLog_test/assets/index-Cb1c9ZwA.css">
