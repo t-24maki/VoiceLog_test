@@ -1,5 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import jaLocale from '@fullcalendar/core/locales/ja'
 import './App.css'
 
 // トップ画面コンポーネント
@@ -32,7 +35,7 @@ function TopScreen() {
   return (
     <div className="screen">
       <div className="top-container">
-        {/* 左側：入力フォームと固定テキスト */}
+        {/* 左側：入力フォーム、固定テキスト、カレンダー */}
         <div className="left-area">
           <div className="input-section">
             <h3 className="form-title">入力フォーム</h3>
@@ -85,11 +88,13 @@ function TopScreen() {
               <p>{fixedText}</p>
             </div>
           </div>
+
+          {/* カレンダーウィジェット */}
+          <CalendarWidget />
         </div>
 
         {/* 右側：受信メッセージエリア */}
         <div className="right-area">
-          <h1 className="title">VoiceLog</h1>
           
           {showMessage ? (
             <div className="message-display">
@@ -107,6 +112,35 @@ function TopScreen() {
             </div>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+// カレンダーコンポーネント
+function CalendarWidget() {
+  return (
+    <div className="calendar-widget">
+      <h3 className="calendar-title">カレンダー</h3>
+      <div className="calendar-container">
+        <FullCalendar
+          plugins={[dayGridPlugin]}
+          initialView="dayGridMonth"
+          height="auto"
+          headerToolbar={{
+            left: 'prev,next',
+            center: 'title',
+            right: 'today'
+          }}
+          locales={[jaLocale]}
+          locale="ja"
+          buttonText={{
+            today: '今日',
+            prev: '前月',
+            next: '翌月'
+          }}
+          dayCellContent={(arg) => arg.dayNumberText}
+        />
       </div>
     </div>
   )
@@ -171,15 +205,12 @@ function SettingsScreen() {
 
 // メインAppコンポーネント
 function App() {
-  // 開発環境と本番環境でbasenameを分岐
-  const basename = window.location.hostname === 'localhost' ? '' : '/VoiceLog_test';
-  
   return (
-    <Router basename={basename}>
+    <Router>
       <div className="app">
         <nav className="navigation">
           <div className="nav-container">
-            <h2 className="nav-title">VoiceLog</h2>
+            <h2 className="nav-title">画面サンプル</h2>
             <div className="nav-links">
               <Link to="/" className="nav-link">トップ</Link>
               <Link to="/settings" className="nav-link">設定</Link>

@@ -394,6 +394,102 @@ body {
   }
 }
 
+/* カレンダーウィジェット */
+.calendar-widget {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e1e8ed;
+  animation: fadeInLeft 0.6s ease-out;
+}
+
+.calendar-title {
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #34495e;
+  text-align: center;
+}
+
+.calendar-container {
+  width: 100%;
+}
+
+/* FullCalendarのカスタマイズ */
+.calendar-container .fc {
+  font-family: inherit;
+}
+
+.calendar-container .fc-toolbar-title {
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  color: #2c3e50 !important;
+}
+
+.calendar-container .fc-button {
+  background-color: #3498db !important;
+  border-color: #3498db !important;
+  font-size: 0.9rem !important;
+  padding: 0.4rem 0.8rem !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+}
+
+.calendar-container .fc-button:hover {
+  background-color: #2980b9 !important;
+  border-color: #2980b9 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3) !important;
+}
+
+.calendar-container .fc-button:active {
+  transform: translateY(0) !important;
+}
+
+.calendar-container .fc-button:focus {
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1) !important;
+}
+
+.calendar-container .fc-daygrid-day {
+  border-color: #e9ecef !important;
+}
+
+.calendar-container .fc-daygrid-day-number {
+  color: #495057 !important;
+  font-weight: 500 !important;
+  padding: 0.5rem !important;
+}
+
+.calendar-container .fc-daygrid-day.fc-day-today {
+  background-color: rgba(52, 152, 219, 0.1) !important;
+}
+
+.calendar-container .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
+  background-color: #3498db !important;
+  color: white !important;
+  border-radius: 50% !important;
+  width: 2rem !important;
+  height: 2rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0.25rem !important;
+}
+
+.calendar-container .fc-col-header-cell {
+  background-color: #f8f9fa !important;
+  border-color: #e9ecef !important;
+}
+
+.calendar-container .fc-col-header-cell-cushion {
+  color: #495057 !important;
+  font-weight: 600 !important;
+  padding: 0.5rem !important;
+}
+
 /* レスポンシブデザイン */
 @media (max-width: 1024px) {
   .top-container {
@@ -403,6 +499,10 @@ body {
   .input-section,
   .fixed-text-section,
   .right-area {
+    padding: 1.5rem;
+  }
+
+  .calendar-widget {
     padding: 1.5rem;
   }
 }
@@ -465,6 +565,22 @@ body {
     width: 100vw;
     margin-left: calc(-50vw + 50%);
   }
+
+  .calendar-widget {
+    width: 100%;
+    padding: 1.5rem;
+  }
+  
+  .calendar-container .fc-toolbar {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  
+  .calendar-container .fc-toolbar-chunk {
+    display: flex !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+  }
 }
 
 @media (max-width: 480px) {
@@ -518,5 +634,18 @@ body {
   .input-group input,
   .input-group textarea {
     padding: 0.75rem;
+  }
+
+  .calendar-widget {
+    padding: 1rem;
+  }
+  
+  .calendar-container .fc-toolbar-title {
+    font-size: 1rem !important;
+  }
+  
+  .calendar-container .fc-button {
+    font-size: 0.8rem !important;
+    padding: 0.3rem 0.6rem !important;
   }
 } 
