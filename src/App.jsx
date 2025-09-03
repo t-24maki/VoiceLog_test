@@ -6,6 +6,18 @@ import jaLocale from '@fullcalendar/core/locales/ja'
 import { DifyClient } from './config/dify'
 import './App.css'
 
+// 数値を記号に変換する関数
+const convertNumberToSymbol = (number) => {
+  switch (number) {
+    case '5': return '◎'
+    case '4': return '○'
+    case '3': return '△'
+    case '2': return 'ー'
+    case '1': return '×'
+    default: return ''
+  }
+}
+
 // トップ画面コンポーネント
 function TopScreen() {
   const [input1, setInput1] = useState('')
@@ -17,6 +29,7 @@ function TopScreen() {
   const [isLoading, setIsLoading] = useState(false)
   const [difyResponse, setDifyResponse] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [calendarEvents, setCalendarEvents] = useState([])
 
   const difyClient = new DifyClient()
 
@@ -27,6 +40,12 @@ function TopScreen() {
       setFixedText(savedText)
     } else {
       setFixedText('デフォルトの固定テキスト')
+    }
+
+    // ローカルストレージからカレンダーイベントを読み込み
+    const savedEvents = localStorage.getItem('calendarEvents')
+    if (savedEvents) {
+      setCalendarEvents(JSON.parse(savedEvents))
     }
   }, [])
 
@@ -44,6 +63,27 @@ function TopScreen() {
         setMessage('Difyからの回答を受信しました')
         setDifyResponse(result.message)
         setShowMessage(true)
+        
+        // カレンダーに結果を保存
+        const today = new Date()
+        const dateString = today.toISOString().split('T')[0]
+        const symbol = convertNumberToSymbol(input2)
+        
+        const newEvent = {
+          id: dateString,
+          title: symbol,
+          date: dateString,
+          backgroundColor: '#4CAF50',
+          borderColor: '#4CAF50',
+          textColor: '#ffffff'
+        }
+        
+        // 既存のイベントを更新または新規追加
+        const updatedEvents = calendarEvents.filter(event => event.id !== dateString)
+        updatedEvents.push(newEvent)
+        
+        setCalendarEvents(updatedEvents)
+        localStorage.setItem('calendarEvents', JSON.stringify(updatedEvents))
       } else {
         setErrorMessage(result.message)
         setMessage('エラーが発生しました')
@@ -89,11 +129,11 @@ function TopScreen() {
                   onChange={(e) => setInput2(e.target.value)}
                   required
                 >
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
                   <option value="5">5</option>
+                  <option value="4">4</option>
+                  <option value="3">3</option>
+                  <option value="2">2</option>
+                  <option value="1">1</option>
                 </select>
               </div>
 
@@ -123,7 +163,7 @@ function TopScreen() {
           </div>
 
           {/* カレンダーウィジェット */}
-          <CalendarWidget />
+          <CalendarWidget events={calendarEvents} />
         </div>
 
         {/* 右側：受信メッセージエリア */}
@@ -164,7 +204,7 @@ function TopScreen() {
 }
 
 // カレンダーコンポーネント
-function CalendarWidget() {
+function CalendarWidget({ events = [] }) {
   return (
     <div className="calendar-widget">
       <h3 className="calendar-title">カレンダー</h3>
@@ -185,6 +225,7 @@ function CalendarWidget() {
             prev: '前月',
             next: '翌月'
           }}
+          events={events}
           dayCellContent={(arg) => arg.dayNumberText}
         />
       </div>
