@@ -6,6 +6,7 @@ import jaLocale from '@fullcalendar/core/locales/ja'
 import { DifyClient } from './config/dify'
 import './App.css'
 
+
 // 数値を記号に変換する関数
 const convertNumberToSymbol = (number) => {
   switch (number) {
@@ -122,23 +123,24 @@ function TopScreen() {
               </div>
 
               <div className="input-group">
-                <label htmlFor="input2">数値選択</label>
-                <select
-                  id="input2"
-                  value={input2}
-                  onChange={(e) => setInput2(e.target.value)}
-                  required
-                >
-                  <option value="5">5</option>
-                  <option value="4">4</option>
-                  <option value="3">3</option>
-                  <option value="2">2</option>
-                  <option value="1">1</option>
-                </select>
+                <label htmlFor="input2">今日の心のお天気は？</label>
+                <div className="number-button-group" role="group" aria-label="今日の心のお天気は？">
+                  {['5', '4', '3', '2', '1'].map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`number-button${input2 === value ? ' active' : ''}`}
+                      onClick={() => setInput2(value)}
+                      aria-pressed={input2 === value}
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="input-group">
-                <label htmlFor="input3">自由入力欄</label>
+                <label htmlFor="input3">お天気の理由を教えて！</label>
                 <textarea
                   id="input3"
                   value={input3}
@@ -161,13 +163,12 @@ function TopScreen() {
               <p>{fixedText}</p>
             </div>
           </div>
-
-          {/* カレンダーウィジェット */}
-          <CalendarWidget events={calendarEvents} />
         </div>
 
         {/* 右側：受信メッセージエリア */}
         <div className="right-area">
+          {/* カレンダーウィジェット - 送信後に表示 */}
+          {showMessage && <CalendarWidget events={calendarEvents} />}
           
           {showMessage ? (
             <div className="message-display">
@@ -206,7 +207,7 @@ function TopScreen() {
 // カレンダーコンポーネント
 function CalendarWidget({ events = [] }) {
   return (
-    <div className="calendar-widget">
+    <div className="calendar-widget compact">
       <h3 className="calendar-title">カレンダー</h3>
       <div className="calendar-container">
         <FullCalendar
@@ -226,7 +227,9 @@ function CalendarWidget({ events = [] }) {
             next: '翌月'
           }}
           events={events}
-          dayCellContent={(arg) => arg.dayNumberText}
+          fixedWeekCount={true}
+          dayMaxEvents={false}
+          dayCellContent={(arg) => arg.dayNumberText.replace('日', '')}
         />
       </div>
     </div>

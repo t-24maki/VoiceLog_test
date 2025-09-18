@@ -64,3 +64,4 @@ echo "2. npm run server でバックエンドを起動"
 echo ""
 echo "注意: .envファイルには機密情報が含まれているため、"
 echo "Gitにコミットしないでください。"
+
