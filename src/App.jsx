@@ -116,7 +116,7 @@ function TopScreen() {
                   required
                 >
                   <option value="">部署を選択してください</option>
-                  <option value="部署A">部署A</option>
+                  <option value="プロップ">プロップ</option>
                   <option value="部署B">部署B</option>
                   <option value="部署C">部署C</option>
                 </select>
@@ -125,7 +125,7 @@ function TopScreen() {
               <div className="input-group">
                 <label htmlFor="input2">今日の心のお天気は？</label>
                 <div className="number-button-group" role="group" aria-label="今日の心のお天気は？">
-                  {['5', '4', '3', '2', '1'].map((value) => (
+                  {['☀️気分最高！やる気に満ちている', '4', '3', '2', '1'].map((value) => (
                     <button
                       key={value}
                       type="button"

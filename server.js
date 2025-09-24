@@ -49,7 +49,7 @@ const DIFY_CONFIG = {
   // ワークフローアプリの正しいエンドポイント
   get API_ENDPOINT() {
     return process.env.DIFY_API_ENDPOINT || 
-           `https://api.dify.ai/v1/workflows/run`;
+           `https://dotsconnection.jp/v1/workflows/run`;
   }
 };
 
@@ -77,8 +77,12 @@ app.post('/api/dify/send', async (req, res) => {
       });
     }
 
-    // 自由入力欄の内容のみをDifyに送信
-    const userInput = details;
+    // Dify ワークフローへの入力変数を作成
+    const inputsForDify = {
+      name: department,
+      Feering: rating,
+      What: details
+    };
 
     console.log('Dify API設定:', {
       endpoint: DIFY_CONFIG.API_ENDPOINT,
@@ -96,9 +100,7 @@ app.post('/api/dify/send', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: {
-          user_input: userInput
-        },
+        inputs: inputsForDify,
         response_mode: 'blocking',
         user: 'web_user'
       })
@@ -116,11 +118,16 @@ app.post('/api/dify/send', async (req, res) => {
     console.log('Dify API 成功レスポンス:', data);
     
     // ワークフローアプリのレスポンス形式に合わせて処理
-    if (data.data && data.data.outputs && data.data.outputs.response) {
+    const workflowOutput = data?.data?.outputs?.output
+      || data?.data?.outputs?.response
+      || data?.output
+      || data?.answer;
+
+    if (workflowOutput) {
       res.json({
         success: true,
-        message: data.data.outputs.response,
-        text: data.data.outputs.response,
+        message: workflowOutput,
+        text: workflowOutput,
         conversationId: data.data.conversation_id || '',
         messageId: data.data.message_id || ''
       });

@@ -32,7 +32,7 @@ export default async function handler(req, res) {
 
     // 環境変数からDify設定を取得
     const DIFY_API_KEY = process.env.DIFY_API_KEY;
-    const DIFY_API_ENDPOINT = process.env.DIFY_API_ENDPOINT || 'https://api.dify.ai/v1/workflows/run';
+    const DIFY_API_ENDPOINT = process.env.DIFY_API_ENDPOINT || 'https://dotsconnection.jp/v1/workflows/run';
     const DIFY_WORKSPACE_ID = process.env.DIFY_WORKSPACE_ID;
 
     // APIキーの確認
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Dify APIにリクエスト
+    // Dify APIにリクエスト（Name/Feering/What を渡す）
     const response = await fetch(DIFY_API_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -52,8 +52,12 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         inputs: {
-          user_input: details  // 入力欄3の内容をuser_input変数として渡す
-        }
+          name: department,
+          Feering: rating,
+          What: details
+        },
+        response_mode: 'blocking',
+        user: 'web_user'
       })
     });
 
@@ -65,10 +69,15 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     
+    const workflowOutput = data?.data?.outputs?.output
+      || data?.data?.outputs?.response
+      || data?.output
+      || data?.answer;
+
     res.status(200).json({
       success: true,
-      message: data.output,
-      text: data.output,  // Difyの返却値をtextとしても含める
+      message: workflowOutput,
+      text: workflowOutput,
       conversationId: data.conversation_id,
       messageId: data.message_id
     });
