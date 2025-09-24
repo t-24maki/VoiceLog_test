@@ -6,10 +6,10 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  font-family: 'Noto Sans JP', sans-serif;
+  background: #ffffff;
   min-height: 100vh;
-  color: #2c3e50;
+  color: #0C0C0C;
   width: 100vw;
   margin: 0;
   padding: 0;
@@ -25,15 +25,13 @@ body {
 
 /* ナビゲーション */
 .navigation {
-  background: rgba(255, 255, 255, 0.98);
+  background: linear-gradient(90deg, #ff8c1a 0%, #ffcf33 50%, #8fd19e 100%);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid #e1e8ed;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   width: 100%;
   box-sizing: border-box;
 }
@@ -86,6 +84,36 @@ body {
   margin-top: 0;
 }
 
+/* メインコンテンツ領域とフッター */
+.main-content {
+  min-height: calc(100vh - 80px - 60px);
+  display: flex;
+  align-items: stretch;
+}
+
+.footer {
+  background: #f8f9fa;
+  color: #6c757d;
+  border-top: 1px solid #e9ecef;
+  width: 100%;
+  height: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.footer-container {
+  width: 100%;
+  padding: 0 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.footer-text {
+  font-size: 0.9rem;
+}
+
 .container {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20px);
@@ -98,65 +126,86 @@ body {
   animation: fadeInUp 0.6s ease-out;
 }
 
-/* トップ画面の左右レイアウト */
+/* トップ画面の縦レイアウト */
 .top-container {
-  display: flex;
-  gap: 2rem;
-  width: 100%;
-  height: 100%;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 0 2rem;
-  box-sizing: border-box;
-  position: relative;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-.left-area {
-  width: 45%;
-  max-width: 500px;
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.left-area {
+  width: 100%;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  align-items: center;
 }
 
 .right-area {
-  width: 45%;
-  max-width: 500px;
+  width: 100%;
+  max-width: 800px;
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20px);
   border-radius: 12px;
   padding: 2rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
   border: 1px solid #e1e8ed;
-  animation: fadeInRight 0.6s ease-out;
-  flex-shrink: 0;
+  animation: fadeInUp 0.6s ease-out;
 }
 
+/* メイン入力フォームコンテナ - Group 33 */
 .input-section {
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
-  padding: 2rem;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-  border: 1px solid #e1e8ed;
-  animation: fadeInLeft 0.6s ease-out;
   position: relative;
-  overflow: hidden;
+  width: 728px;
+  height: 830px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  animation: fadeInUp 0.6s ease-out;
+  overflow: visible;
+  margin: 0 auto;
 }
 
-.input-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #3498db, #2980b9, #3498db);
-  background-size: 200% 100%;
-  animation: gradientShift 3s ease-in-out infinite;
+/* お疲れ様メッセージ */
+.greeting-message {
+  position: relative;
+  width: 100%;
+  height: 21px;
+  left: 0px;
+  top: 0px;
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 22px;
+  text-align: center;
+  letter-spacing: 0.1em;
+  color: #EAAA60;
+}
+
+/* 入力回数表示 */
+.input-count {
+  position: relative;
+  width: 100%;
+  height: 15px;
+  margin-top: 20px;
+  margin-bottom: 30px;
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 16px;
+  text-align: center;
+  letter-spacing: 0.1em;
+  color: #EAAA60;
 }
 
 @keyframes gradientShift {
@@ -318,13 +367,107 @@ body {
 
 /* 入力フォーム */
 .input-form {
+  position: relative;
+  width: 728px;
+  height: 830px;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  background: #f8f9fa;
-  padding: 1.5rem;
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
+/* お天気選択グループ - Group 2 */
+.weather-group {
+  position: relative;
+  width: 100%;
+  max-width: 728px;
+  height: 149px;
+  margin-top: 20px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* お天気ラベル */
+.weather-label {
+  position: relative;
+  width: 308px;
+  height: 16px;
+  margin-bottom: 16px;
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #EAAA60;
+}
+
+/* お天気画像コンテナ */
+.weather-image-container {
+  position: relative;
+  width: 100%;
+  max-width: 728px;
+  height: 80px;
+  background: url('/public/weather-bg.png');
+  background-size: cover;
+  background-position: center;
+  margin: 20px auto 16px;
+}
+
+/* 理由入力グループ - Group 7 */
+.reason-group {
+  position: relative;
+  width: 728px;
+  height: 176px;
+  margin-top: 30px;
+}
+
+/* 理由ラベル */
+.reason-label {
+  position: relative;
+  width: 308px;
+  height: 16px;
+  margin-bottom: 24px;
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 17px;
+  color: #EAAA60;
+}
+
+/* 理由テキストエリア背景 */
+.reason-textarea-bg {
+  position: absolute;
+  width: 728px;
+  height: 152px;
+  left: 0px;
+  top: 24px;
+  background: #FAE7D1;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  z-index: 1;
+}
+
+/* 理由テキストエリア */
+.reason-textarea {
+  position: absolute;
+  width: 696px;
+  height: 120px;
+  left: 16px;
+  top: 40px;
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #0C0C0C;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  padding: 0;
+  box-sizing: border-box;
+  z-index: 2;
 }
 
 .input-group {
@@ -440,21 +583,34 @@ body {
   box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
 }
 
-/* ボタン */
+/* 送信ボタンコンテナ - Group 28 */
+.submit-button-container {
+  position: relative;
+  width: 320px;
+  height: 52px;
+  margin: 30px auto 0;
+}
+
+/* 送信ボタン背景 - Rectangle 7 */
 .submit-btn,
 .save-btn {
-  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
+  position: relative;
+  width: 320px;
+  height: 52px;
+  background: rgba(223, 126, 7, 0.866667);
+  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.25);
   border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 600;
+  border: none;
+  color: #FFFFFF;
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 19px;
+  text-align: center;
+  letter-spacing: 0.1em;
   cursor: pointer;
   transition: all 0.3s ease;
-  margin-top: 1rem;
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-  position: relative;
   overflow: hidden;
 }
 
@@ -819,10 +975,41 @@ body {
     gap: 1.5rem;
   }
   
-  .input-section,
+  .input-section {
+    width: 100%;
+    max-width: 600px;
+  }
+  .input-form,
+  .weather-group,
+  .reason-group {
+    width: 100%;
+  }
+  .greeting-message,
+  .input-count {
+    position: relative;
+    width: 100%;
+    left: 0;
+    top: 0;
+    text-align: center;
+  }
+  
   .fixed-text-section,
   .right-area {
     padding: 1.5rem;
+  }
+  
+  .weather-image-container,
+  .weather-image-group {
+    width: 100%;
+    left: 0;
+  }
+  .reason-textarea-bg {
+    width: 100%;
+    left: 0;
+  }
+  .reason-textarea {
+    width: calc(100% - 32px);
+    left: 16px;
   }
   
   .calendar-container {
@@ -832,13 +1019,8 @@ body {
 
 @media (max-width: 768px) {
   .top-container {
-    flex-direction: column;
     gap: 1.5rem;
-    justify-content: center;
-    align-items: center;
-    padding: 0 1rem;
-    left: 0;
-    transform: none;
+    padding: 1rem;
   }
   
   .left-area,
@@ -847,7 +1029,60 @@ body {
     max-width: 500px;
   }
   
-  .input-section,
+  .input-section {
+    width: 100%;
+    height: auto;
+    max-width: 500px;
+  }
+  
+  .input-form {
+    width: 100%;
+    height: auto;
+  }
+  
+  .weather-group,
+  .reason-group {
+    width: 100%;
+    margin-top: 20px;
+  }
+  
+  .weather-label,
+  .reason-label {
+    width: 100%;
+  }
+  
+  .weather-image-container {
+    width: 100%;
+    height: 60px;
+  }
+  
+  .weather-image-group {
+    width: 100%;
+    height: 60px;
+  }
+  
+  .weather-image-button {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .reason-textarea-bg {
+    width: 100%;
+    left: 0px;
+    top: 24px;
+  }
+  
+  .reason-textarea {
+    width: calc(100% - 32px);
+    left: 16px;
+    top: 40px;
+  }
+  
+  .submit-button-container {
+    width: 100%;
+    max-width: 320px;
+  }
+  
   .fixed-text-section {
     width: 100%;
     padding: 1.5rem;
@@ -898,11 +1133,8 @@ body {
 
 @media (max-width: 480px) {
   .top-container {
-    justify-content: center;
-    align-items: center;
-    padding: 0 0.5rem;
-    left: 0;
-    transform: none;
+    gap: 1rem;
+    padding: 0.5rem;
   }
   
   .left-area,
@@ -911,7 +1143,67 @@ body {
     max-width: 100%;
   }
   
-  .input-section,
+  .input-section {
+    width: 100%;
+    height: auto;
+    max-width: 100%;
+  }
+  
+  .input-form {
+    width: 100%;
+    height: auto;
+  }
+  
+  .weather-group,
+  .reason-group {
+    width: 100%;
+    margin-top: 15px;
+  }
+  
+  .weather-label,
+  .reason-label {
+    width: 100%;
+    font-size: 12px;
+  }
+  
+  .weather-image-container {
+    width: 100%;
+    height: 50px;
+  }
+  
+  .weather-image-group {
+    width: 100%;
+    height: 50px;
+  }
+  
+  .weather-image-button {
+    width: 35px;
+    height: 35px;
+  }
+  
+  .reason-textarea-bg {
+    width: 100%;
+    left: 0px;
+    top: 24px;
+  }
+  
+  .reason-textarea {
+    width: calc(100% - 32px);
+    left: 16px;
+    top: 40px;
+    font-size: 14px;
+  }
+  
+  .submit-button-container {
+    width: 100%;
+    max-width: 280px;
+  }
+  
+  .submit-btn {
+    width: 100%;
+    font-size: 14px;
+  }
+  
   .fixed-text-section,
   .right-area {
     padding: 1rem;
@@ -972,10 +1264,18 @@ body {
 
 /* 画像選択（今日の心のお天気） */
 .weather-image-group {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.5rem;
+  position: absolute;
   width: 100%;
+  max-width: 728px;
+  height: 80px;
+  left: 50%;
+  top: 20px;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  z-index: 10;
 }
 
 .weather-image-button {
@@ -985,7 +1285,11 @@ body {
   background: transparent;
   cursor: pointer;
   transition: border-color 0.2s ease, transform 0.1s ease;
-  width: 100%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .weather-image-button:hover {
@@ -1000,7 +1304,7 @@ body {
 
 .weather-image {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 100%;
   object-fit: cover;
   border-radius: 6px;
   display: block;

@@ -21,7 +21,7 @@ const convertNumberToSymbol = (number) => {
 
 // トップ画面コンポーネント
 function TopScreen() {
-  const [input1, setInput1] = useState('')
+  const [input1, setInput1] = useState('プロップ') // デフォルト値を設定
   const [input2, setInput2] = useState('1')
   const [input3, setInput3] = useState('')
   const [message, setMessage] = useState('')
@@ -57,6 +57,16 @@ function TopScreen() {
     setDifyResponse('')
     
     try {
+      // 入力値の検証
+      if (!input3.trim()) {
+        setErrorMessage('理由を入力してください')
+        setMessage('入力エラー')
+        setShowMessage(true)
+        return
+      }
+
+      console.log('送信データ:', { input1, input2, input3 }) // デバッグ用
+      
       // Dify APIにメッセージを送信
       const result = await difyClient.sendMessage(input1, input2, input3)
       
@@ -86,12 +96,13 @@ function TopScreen() {
         setCalendarEvents(updatedEvents)
         localStorage.setItem('calendarEvents', JSON.stringify(updatedEvents))
       } else {
-        setErrorMessage(result.message)
+        setErrorMessage(result.error || result.message || 'APIエラーが発生しました')
         setMessage('エラーが発生しました')
         setShowMessage(true)
       }
     } catch (error) {
-      setErrorMessage('予期しないエラーが発生しました')
+      console.error('送信エラー:', error) // デバッグ用
+      setErrorMessage(error.message || '予期しないエラーが発生しました')
       setMessage('エラーが発生しました')
       setShowMessage(true)
     } finally {
@@ -102,28 +113,16 @@ function TopScreen() {
   return (
     <div className="screen">
       <div className="top-container">
-        {/* 左側：入力フォーム、固定テキスト、カレンダー */}
+        {/* 入力フォーム */}
         <div className="left-area">
           <div className="input-section">
-            <h3 className="form-title">入力フォーム</h3>
+            <div className="greeting-message">お仕事お疲れ様でした！</div>
+            <div className="input-count">2025.0000現在_◯◯さん入力0回</div>
+            
             <form onSubmit={handleSubmit} className="input-form">
-              <div className="input-group">
-                <label htmlFor="input1">部署選択</label>
-                <select
-                  id="input1"
-                  value={input1}
-                  onChange={(e) => setInput1(e.target.value)}
-                  required
-                >
-                  <option value="">部署を選択してください</option>
-                  <option value="プロップ">プロップ</option>
-                  <option value="部署B">部署B</option>
-                  <option value="部署C">部署C</option>
-                </select>
-              </div>
-
-              <div className="input-group">
-                <label htmlFor="input2">今日の心のお天気は？</label>
+              <div className="weather-group">
+                <div className="weather-label">● 今日の心のお天気は？</div>
+                <div className="weather-image-container"></div>
                 <div className="weather-image-group" role="radiogroup" aria-label="今日の心のお天気は？">
                   {[5, 4, 3, 2, 1].map((num) => (
                     <button
@@ -140,24 +139,30 @@ function TopScreen() {
                 </div>
               </div>
 
-              <div className="input-group">
-                <label htmlFor="input3">お天気の理由を教えて！</label>
+              <div className="reason-group">
+                <div className="reason-label">● お天気の理由を教えて！</div>
+                <div className="reason-textarea-bg"></div>
                 <textarea
                   id="input3"
                   value={input3}
                   onChange={(e) => setInput3(e.target.value)}
-                  placeholder="自由に入力してください（改行可能）"
-                  rows="4"
+                  placeholder="今日あったこと、できたこと、困ったこと、相談したいこと、嬉しかったこと、腹が立ったこと、なんでもいいので教えて！今日あったこと、できたこと、困ったこと、相談したいこと、嬉しかったこと、腹が立ったこと、なんでもいいので教えて！"
+                  className="reason-textarea"
                   required
                 />
               </div>
 
-              <button type="submit" className="submit-btn" disabled={isLoading}>
-                {isLoading ? '送信中...' : '送信'}
-              </button>
+              <div className="submit-button-container">
+                <button type="submit" className="submit-btn" disabled={isLoading}>
+                  {isLoading ? '送信中...' : '送信（ログイン）'}
+                </button>
+              </div>
             </form>
           </div>
+        </div>
 
+        {/* 固定テキスト */}
+        <div className="left-area">
           <div className="fixed-text-section">
             <h3 className="section-title">固定テキスト</h3>
             <div className="fixed-text-display">
@@ -166,7 +171,7 @@ function TopScreen() {
           </div>
         </div>
 
-        {/* 右側：受信メッセージエリア */}
+        {/* メッセージ表示エリア */}
         <div className="right-area">
           {/* カレンダーウィジェット - 送信後に表示 */}
           {showMessage && <CalendarWidget events={calendarEvents} />}
@@ -195,7 +200,7 @@ function TopScreen() {
           ) : (
             <div className="welcome-message">
               <h2>メッセージ受信待機中</h2>
-              <p>左側のフォームに入力して送信ボタンを押してください</p>
+              <p>上のフォームに入力して送信ボタンを押してください</p>
               <p>入力内容はDifyに送信され、AIからの回答が表示されます</p>
             </div>
           )}
@@ -309,10 +314,18 @@ function App() {
           </div>
         </nav>
 
-        <Routes>
-          <Route path="/" element={<TopScreen />} />
-          <Route path="/settings" element={<SettingsScreen />} />
-        </Routes>
+        <main className="main-content">
+          <Routes>
+            <Route path="/" element={<TopScreen />} />
+            <Route path="/settings" element={<SettingsScreen />} />
+          </Routes>
+        </main>
+
+        <footer className="footer">
+          <div className="footer-container">
+            <p className="footer-text">© {new Date().getFullYear()} VoiceLog</p>
+          </div>
+        </footer>
       </div>
     </Router>
   )

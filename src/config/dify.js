@@ -30,7 +30,14 @@ export class DifyClient {
       });
 
       if (!response.ok) {
-        throw new Error(`Backend API error: ${response.status} ${response.statusText}`);
+        let errorMessage = `Backend API error: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // JSON解析に失敗した場合はデフォルトメッセージを使用
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
