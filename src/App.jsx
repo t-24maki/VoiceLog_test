@@ -124,16 +124,17 @@ function TopScreen() {
 
               <div className="input-group">
                 <label htmlFor="input2">今日の心のお天気は？</label>
-                <div className="number-button-group" role="group" aria-label="今日の心のお天気は？">
-                  {['☀️気分最高！やる気に満ちている', '4', '3', '2', '1'].map((value) => (
+                <div className="weather-image-group" role="radiogroup" aria-label="今日の心のお天気は？">
+                  {[5, 4, 3, 2, 1].map((num) => (
                     <button
-                      key={value}
+                      key={num}
                       type="button"
-                      className={`number-button${input2 === value ? ' active' : ''}`}
-                      onClick={() => setInput2(value)}
-                      aria-pressed={input2 === value}
+                      className={`weather-image-button${input2 === String(num) ? ' active' : ''}`}
+                      onClick={() => setInput2(String(num))}
+                      aria-pressed={input2 === String(num)}
+                      aria-label={`お天気 ${num}`}
                     >
-                      {value}
+                      <img src={`/${num}.png`} alt={`お天気 ${num}`} className="weather-image" />
                     </button>
                   ))}
                 </div>
