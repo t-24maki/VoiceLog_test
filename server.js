@@ -80,9 +80,16 @@ app.post('/api/dify/send', async (req, res) => {
     // Dify ワークフローへの入力変数を作成
     const inputsForDify = {
       name: department,
-      Feering: rating,
-      What: details
+      feeling: rating,
+      what: details
     };
+
+    console.log('送信データ:', {
+      department,
+      rating,
+      details,
+      inputsForDify
+    });
 
     console.log('Dify API設定:', {
       endpoint: DIFY_CONFIG.API_ENDPOINT,
@@ -93,17 +100,21 @@ app.post('/api/dify/send', async (req, res) => {
     });
 
     // Dify APIにリクエスト
+    const requestBody = {
+      inputs: inputsForDify,
+      response_mode: 'blocking',
+      user: 'web_user'
+    };
+
+    console.log('Dify API リクエストボディ:', JSON.stringify(requestBody, null, 2));
+
     const response = await fetch(DIFY_CONFIG.API_ENDPOINT, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${DIFY_CONFIG.API_KEY}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        inputs: inputsForDify,
-        response_mode: 'blocking',
-        user: 'web_user'
-      })
+      body: JSON.stringify(requestBody)
     });
 
     console.log('Dify API レスポンス:', response.status, response.statusText);

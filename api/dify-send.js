@@ -43,7 +43,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // Dify APIにリクエスト（Name/Feering/What を渡す）
+    // Dify APIにリクエスト（name/feeling/what を渡す）
     const response = await fetch(DIFY_API_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -53,8 +53,8 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         inputs: {
           name: department,
-          Feering: rating,
-          What: details
+          feeling: rating,
+          what: details
         },
         response_mode: 'blocking',
         user: 'web_user'
