@@ -28,6 +28,7 @@ function TopScreen() {
   const [showMessage, setShowMessage] = useState(false)
   const [fixedText, setFixedText] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [isFadingOut, setIsFadingOut] = useState(false)
   const [difyResponse, setDifyResponse] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [calendarEvents, setCalendarEvents] = useState([])
@@ -50,6 +51,17 @@ function TopScreen() {
     }
   }, [])
 
+  // フェードアウト完了後にstateをリセット
+  useEffect(() => {
+    if (isFadingOut) {
+      const timer = setTimeout(() => {
+        setIsFadingOut(false)
+      }, 450) // フェードアウトアニメーション完了後にリセット
+      
+      return () => clearTimeout(timer)
+    }
+  }, [isFadingOut])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
@@ -62,6 +74,7 @@ function TopScreen() {
         setErrorMessage('理由を入力してください')
         setMessage('入力エラー')
         setShowMessage(true)
+        setIsLoading(false)
         return
       }
 
@@ -84,9 +97,10 @@ function TopScreen() {
           id: dateString,
           title: symbol,
           date: dateString,
-          backgroundColor: '#4CAF50',
-          borderColor: '#4CAF50',
-          textColor: '#ffffff'
+          weatherNumber: input2, // 画像番号を保存
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
+          textColor: '#000000'
         }
         
         // 既存のイベントを更新または新規追加
@@ -95,16 +109,55 @@ function TopScreen() {
         
         setCalendarEvents(updatedEvents)
         localStorage.setItem('calendarEvents', JSON.stringify(updatedEvents))
+        
+        // 分析完了後、フェードアウトアニメーションを開始
+        setTimeout(() => {
+          setIsFadingOut(true)
+          
+          // フェードアウト完了後に送信ボタンの下まで自動スクロール
+          setTimeout(() => {
+            const submitButton = document.querySelector('.submit-button-container')
+            if (submitButton) {
+              submitButton.scrollIntoView({ behavior: 'smooth', block: 'end' })
+            }
+          }, 350) // フェードアウトアニメーション完了後にスクロール
+        }, 500) // 少し遅延を設けて結果表示を確認できるようにする
       } else {
         setErrorMessage(result.error || result.message || 'APIエラーが発生しました')
         setMessage('エラーが発生しました')
         setShowMessage(true)
+        
+        // エラー時もフェードアウトアニメーションを開始
+        setTimeout(() => {
+          setIsFadingOut(true)
+          
+          // エラー時もフェードアウト完了後に送信ボタンの下まで自動スクロール
+          setTimeout(() => {
+            const submitButton = document.querySelector('.submit-button-container')
+            if (submitButton) {
+              submitButton.scrollIntoView({ behavior: 'smooth', block: 'end' })
+            }
+          }, 350)
+        }, 500)
       }
     } catch (error) {
       console.error('送信エラー:', error) // デバッグ用
       setErrorMessage(error.message || '予期しないエラーが発生しました')
       setMessage('エラーが発生しました')
       setShowMessage(true)
+      
+      // エラー時もフェードアウトアニメーションを開始
+      setTimeout(() => {
+        setIsFadingOut(true)
+        
+        // エラー時もフェードアウト完了後に送信ボタンの下まで自動スクロール
+        setTimeout(() => {
+          const submitButton = document.querySelector('.submit-button-container')
+          if (submitButton) {
+            submitButton.scrollIntoView({ behavior: 'smooth', block: 'end' })
+          }
+        }, 350)
+      }, 500)
     } finally {
       setIsLoading(false)
     }
@@ -112,11 +165,24 @@ function TopScreen() {
 
   return (
     <div className="screen">
+      {/* ローディングオーバーレイ */}
+      {isLoading && (
+        <div className={`loading-overlay ${isFadingOut ? 'fade-out' : ''}`}>
+          <div className="loading-content">
+            <img src="/loading-icon.svg" alt="分析中" className="loading-icon" />
+            <p className="loading-text">分析中...</p>
+          </div>
+        </div>
+      )}
+      
       <div className="top-container">
         {/* 入力フォーム */}
         <div className="left-area">
           <div className="input-section">
             <div className="greeting-message">お仕事お疲れ様でした！</div>
+            <div className="weather-image-container">
+              <img src="/weather-placeholder.png" alt="お天気プレースホルダー" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+            </div>
             <div className="input-count">2025.0000現在_◯◯さん入力0回</div>
             
             <form onSubmit={handleSubmit} className="input-form">
@@ -154,22 +220,22 @@ function TopScreen() {
 
               <div className="submit-button-container">
                 <button type="submit" className="submit-btn" disabled={isLoading}>
-                  {isLoading ? '送信中...' : '送信（ログイン）'}
+                  {isLoading ? '送信中...' : '送信'}
                 </button>
               </div>
             </form>
           </div>
         </div>
 
-        {/* 固定テキスト */}
-        <div className="left-area">
+        {/* 固定テキスト - 一時的にコメントアウト */}
+        {/* <div className="left-area">
           <div className="fixed-text-section">
             <h3 className="section-title">固定テキスト</h3>
             <div className="fixed-text-display">
               <p>{fixedText}</p>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* メッセージ表示エリア */}
         <div className="right-area">
@@ -236,8 +302,68 @@ function CalendarWidget({ events = [] }) {
           fixedWeekCount={true}
           dayMaxEvents={false}
           dayCellContent={(arg) => arg.dayNumberText.replace('日', '')}
+          eventContent={(eventInfo) => {
+            if (eventInfo.event.extendedProps.weatherNumber) {
+              return {
+                html: `<img src="/${eventInfo.event.extendedProps.weatherNumber}.png" alt="お天気 ${eventInfo.event.extendedProps.weatherNumber}" class="weather-calendar-image" />`
+              }
+            }
+            return { html: eventInfo.event.title }
+          }}
         />
       </div>
+    </div>
+  )
+}
+
+// ログイン画面コンポーネント
+function LoginScreen({ onLogin }) {
+  const handleGoogleLogin = () => {
+    // ログイン機能は後で実装するため、現在はメイン画面に遷移
+    onLogin()
+  }
+
+  return (
+    <div className="app">
+      <nav className="navigation">
+        <div className="nav-container">
+          <h2 className="nav-title">VoiceLogロゴ</h2>
+          <div className="nav-links">
+            {/* ログイン画面ではナビゲーションリンクは非表示 */}
+          </div>
+        </div>
+      </nav>
+
+      <main className="main-content">
+        <div className="login-screen">
+          <div className="login-background">
+            <div className="login-background-image"></div>
+            <div className="login-overlay"></div>
+          </div>
+          
+          <div className="login-content">
+            <div className="login-card">
+              <div className="login-title">LOGIN</div>
+              <div className="login-form">
+                <div className="login-form-background"></div>
+              </div>
+              
+              <div className="login-footer">
+                <div className="login-text">新規登録（ログイン）</div>
+                <button className="google-login-btn" onClick={handleGoogleLogin}>
+                  Googleアカウントでログイン
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <footer className="footer">
+        <div className="footer-container">
+          <p className="footer-text">© {new Date().getFullYear()} VoiceLog</p>
+        </div>
+      </footer>
     </div>
   )
 }
@@ -301,12 +427,23 @@ function SettingsScreen() {
 
 // メインAppコンポーネント
 function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  const handleLogin = () => {
+    setIsLoggedIn(true)
+  }
+
+  // ログインしていない場合はログイン画面を表示
+  if (!isLoggedIn) {
+    return <LoginScreen onLogin={handleLogin} />
+  }
+
   return (
     <Router>
       <div className="app">
         <nav className="navigation">
           <div className="nav-container">
-            <h2 className="nav-title">画面サンプル</h2>
+            <h2 className="nav-title">VoiceLogロゴ</h2>
             <div className="nav-links">
               <Link to="/" className="nav-link">トップ</Link>
               <Link to="/settings" className="nav-link">設定</Link>
