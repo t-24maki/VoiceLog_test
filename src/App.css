@@ -5,7 +5,7 @@
   height: 100%;
   background: linear-gradient(90deg, #ffb366 0%, #fff2a1 50%, #b8e6b8 100%);
   overflow: hidden;
-  min-height: calc(100vh - 64px - 60px);
+  min-height: calc(100vh - 48px - 60px);
 }
 
 .login-background {
@@ -55,7 +55,6 @@
   align-items: center;
   background: rgba(255, 255, 255, 0.3);
   backdrop-filter: blur(10px);
-  border-radius: 12px;
   padding: 3rem 2rem 2rem 2rem;
 }
 
@@ -157,7 +156,9 @@ body {
   min-height: 100vh;
   width: 100vw;
   overflow-x: hidden;
-  padding-top: 64px;
+  padding-top: 48px;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ナビゲーション */
@@ -175,7 +176,7 @@ body {
 
 .nav-container {
   width: 100%;
-  padding: 0.8rem 2rem;
+  padding: 0.4rem 2rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -211,7 +212,6 @@ body {
 
 /* 画面全体 */
 .screen {
-  min-height: calc(100vh - 64px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -219,11 +219,12 @@ body {
   width: 100%;
   box-sizing: border-box;
   margin-top: 0;
+  flex: 1;
 }
 
 /* メインコンテンツ領域とフッター */
 .main-content {
-  min-height: calc(100vh - 64px - 60px);
+  flex: 1;
   display: flex;
   align-items: stretch;
 }
@@ -261,6 +262,10 @@ body {
   max-width: 600px;
   width: 100%;
   animation: fadeInUp 0.6s ease-out;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* トップ画面の縦レイアウト */
@@ -269,11 +274,12 @@ body {
   flex-direction: column;
   gap: 1rem;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   align-items: center;
   justify-content: flex-start;
   padding: 2rem;
   box-sizing: border-box;
+  flex: 1;
 }
 
 .left-area {
@@ -506,7 +512,7 @@ body {
 .input-form {
   position: relative;
   width: 728px;
-  height: 830px;
+  min-height: 830px;
   display: flex;
   flex-direction: column;
   background: transparent;
@@ -957,9 +963,9 @@ body {
 
 /* ツールバー */
 .calendar-container .fc-toolbar {
-  padding: 0.75rem;
-  background: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+  padding: 0.75rem 0.5rem;
+  background: transparent;
+  border-bottom: none;
 }
 
 .calendar-container .fc-toolbar-title {
@@ -969,18 +975,29 @@ body {
 }
 
 .calendar-container .fc-button {
-  background-color: #3498db;
-  border-color: #3498db;
-  color: white;
-  font-size: 0.9rem;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  font-weight: 500;
+  background-color: transparent;
+  border: none;
+  color: #666;
+  font-size: 1.2rem;
+  padding: 0.3rem;
+  border-radius: 50%;
+  font-weight: bold;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
 }
 
 .calendar-container .fc-button:hover {
-  background-color: #2980b9;
-  border-color: #2980b9;
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+.calendar-container .fc-button:focus {
+  box-shadow: none;
+  outline: none;
 }
 
 /* 曜日ヘッダー */
@@ -990,7 +1007,7 @@ body {
   font-weight: 600;
   text-align: center;
   padding: 0.3rem 0.2rem;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: #495057;
   min-height: 28px;
   max-height: 28px;
@@ -1001,14 +1018,40 @@ body {
   border: 1px solid #dee2e6;
   background: white;
   padding: 0.15rem;
-  min-height: 32px;
-  max-height: 32px;
+  min-height: 28px !important;
+  max-height: 28px !important;
+  height: 28px !important;
 }
 
+/* FullCalendarのデフォルトスタイルを上書き */
+.calendar-container .fc .fc-daygrid-day {
+  min-height: 65px !important;
+  max-height: 65px !important;
+  height: 65px !important;
+}
+
+.calendar-container .fc .fc-daygrid-day-frame {
+  min-height: 28px !important;
+  max-height: 28px !important;
+  height: 28px !important;
+}
+
+/* FullCalendarの内部コンテナも調整 */
+.calendar-container .fc .fc-daygrid-day-top {
+  min-height: 20px !important;
+  max-height: 20px !important;
+  height: 20px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 日付番号のスタイルも調整 */
 .calendar-container .fc-daygrid-day-number {
   font-size: 0.8rem;
   color: #495057;
-  padding: 0.15rem;
+  padding: 0.1rem;
+  line-height: 1;
   font-weight: 500;
 }
 
@@ -1045,8 +1088,8 @@ body {
 
 /* カレンダー内のお天気画像 */
 .weather-calendar-image {
-  width: 16px;
-  height: 16px;
+  width: 35px  !important;
+  height: 35px !important;
   object-fit: cover;
   border-radius: 3px;
   display: block;
@@ -1059,7 +1102,7 @@ body {
 }
 
 /* レスポンシブデザイン */
-@media (max-width: 1024px) {
+@media (max-width: 1024px) and (min-width: 769px) {
   .top-container {
     gap: 1.5rem;
   }
@@ -1068,7 +1111,10 @@ body {
     width: 100%;
     max-width: 600px;
   }
-  .input-form,
+  .input-form {
+    width: 100%;
+    max-width: 600px;
+  }
   .weather-group,
   .reason-group {
     width: 100%;
@@ -1082,8 +1128,13 @@ body {
     text-align: center;
   }
   
-  .fixed-text-section,
   .right-area {
+    width: 100%;
+    max-width: 600px;
+    padding: 0;
+  }
+  
+  .fixed-text-section {
     padding: 1.5rem;
   }
   
@@ -1108,8 +1159,8 @@ body {
   }
   
   .weather-calendar-image {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
   }
 }
 
@@ -1119,10 +1170,15 @@ body {
     padding: 1rem;
   }
   
-  .left-area,
+  .left-area {
+    width: 100%;
+    max-width: 500px;
+  }
+  
   .right-area {
     width: 100%;
     max-width: 500px;
+    padding: 0;
   }
   
   .input-section {
@@ -1133,6 +1189,7 @@ body {
   
   .input-form {
     width: 100%;
+    max-width: 500px;
     height: auto;
   }
   
@@ -1191,6 +1248,7 @@ body {
   .screen {
     padding: 1rem;
     width: 100%;
+    flex: 1;
   }
   
   .title {
@@ -1226,8 +1284,8 @@ body {
   }
   
   .weather-calendar-image {
-    width: 12px;
-    height: 12px;
+    width: 16px;
+    height: 16px;
   }
 
   .weather-image { width: 100%; }
@@ -1249,10 +1307,15 @@ body {
     padding: 0.5rem;
   }
   
-  .left-area,
+  .left-area {
+    width: 100%;
+    max-width: 100%;
+  }
+  
   .right-area {
     width: 100%;
     max-width: 100%;
+    padding: 0;
   }
   
   .input-section {
@@ -1263,6 +1326,7 @@ body {
   
   .input-form {
     width: 100%;
+    max-width: 100%;
     height: auto;
   }
   
@@ -1368,12 +1432,12 @@ body {
   }
   
   .calendar-container .fc-daygrid-day-number {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
   }
   
   .weather-calendar-image {
-    width: 10px;
-    height: 10px;
+    width: 14px;
+    height: 14px;
   }
 
   .weather-image { width: 100%; }
@@ -1469,12 +1533,12 @@ body {
   max-width: 728px;
   height: 80px;
   left: 50%;
-  top: 20px;
+  top: 30px;
   transform: translateX(-50%);
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
   z-index: 10;
 }
 
@@ -1485,8 +1549,8 @@ body {
   background: transparent;
   cursor: pointer;
   transition: border-color 0.2s ease, transform 0.1s ease;
-  width: 60px;
-  height: 60px;
+  width: 80px;
+  height: 80px;
   display: flex;
   align-items: center;
   justify-content: center;

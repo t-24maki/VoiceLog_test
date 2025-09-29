@@ -153,11 +153,11 @@ function TopScreen() {
         setTimeout(() => {
           setIsFadingOut(true)
           
-          // フェードアウト完了後に送信ボタンの下まで自動スクロール
+          // フェードアウト完了後にカレンダーの上部まで自動スクロール
           setTimeout(() => {
-            const submitButton = document.querySelector('.submit-button-container')
-            if (submitButton) {
-              submitButton.scrollIntoView({ behavior: 'smooth', block: 'end' })
+            const calendarWidget = document.querySelector('.calendar-widget')
+            if (calendarWidget) {
+              calendarWidget.scrollIntoView({ behavior: 'smooth', block: 'start' })
             }
           }, 350) // フェードアウトアニメーション完了後にスクロール
         }, 500) // 少し遅延を設けて結果表示を確認できるようにする
@@ -170,11 +170,11 @@ function TopScreen() {
         setTimeout(() => {
           setIsFadingOut(true)
           
-          // エラー時もフェードアウト完了後に送信ボタンの下まで自動スクロール
+          // エラー時もフェードアウト完了後にカレンダーの上部まで自動スクロール
           setTimeout(() => {
-            const submitButton = document.querySelector('.submit-button-container')
-            if (submitButton) {
-              submitButton.scrollIntoView({ behavior: 'smooth', block: 'end' })
+            const calendarWidget = document.querySelector('.calendar-widget')
+            if (calendarWidget) {
+              calendarWidget.scrollIntoView({ behavior: 'smooth', block: 'start' })
             }
           }, 350)
         }, 500)
@@ -189,11 +189,11 @@ function TopScreen() {
       setTimeout(() => {
         setIsFadingOut(true)
         
-        // エラー時もフェードアウト完了後に送信ボタンの下まで自動スクロール
+        // エラー時もフェードアウト完了後にカレンダーの上部まで自動スクロール
         setTimeout(() => {
-          const submitButton = document.querySelector('.submit-button-container')
-          if (submitButton) {
-            submitButton.scrollIntoView({ behavior: 'smooth', block: 'end' })
+          const calendarWidget = document.querySelector('.calendar-widget')
+          if (calendarWidget) {
+            calendarWidget.scrollIntoView({ behavior: 'smooth', block: 'start' })
           }
         }, 350)
       }, 500)
@@ -203,7 +203,7 @@ function TopScreen() {
   }
 
   return (
-    <div className="screen">
+    <div className="top-container">
       {/* ローディングオーバーレイ */}
       {isLoading && (
         <div className={`loading-overlay ${isFadingOut ? 'fade-out' : ''}`}>
@@ -213,8 +213,6 @@ function TopScreen() {
           </div>
         </div>
       )}
-      
-      <div className="top-container">
         {/* 入力フォーム */}
         <div className="left-area">
           <div className="input-section">
@@ -335,7 +333,6 @@ function TopScreen() {
             </div>
           ) : null}
         </div>
-      </div>
     </div>
   )
 }
@@ -344,23 +341,21 @@ function TopScreen() {
 function CalendarWidget({ events = [] }) {
   return (
     <div className="calendar-widget compact">
-      <h3 className="calendar-title">カレンダー</h3>
       <div className="calendar-container">
         <FullCalendar
           plugins={[dayGridPlugin]}
           initialView="dayGridMonth"
           height="auto"
           headerToolbar={{
-            left: 'prev,next',
+            left: 'prev',
             center: 'title',
-            right: 'today'
+            right: 'next'
           }}
           locales={[jaLocale]}
           locale="ja"
           buttonText={{
-            today: '今日',
-            prev: '前月',
-            next: '翌月'
+            prev: '◀',
+            next: '▶'
           }}
           events={events}
           fixedWeekCount={true}
@@ -458,8 +453,7 @@ function SettingsScreen() {
   }
 
   return (
-    <div className="screen">
-      <div className="container">
+    <div className="container">
         <h1 className="title">設定</h1>
         
         <div className="settings-form">
@@ -484,7 +478,6 @@ function SettingsScreen() {
             </div>
           )}
         </div>
-      </div>
     </div>
   )
 }
@@ -508,10 +501,6 @@ function App() {
         <nav className="navigation">
           <div className="nav-container">
             <h2 className="nav-title">VoiceLogロゴ</h2>
-            <div className="nav-links">
-              <Link to="/" className="nav-link">トップ</Link>
-              <Link to="/settings" className="nav-link">設定</Link>
-            </div>
           </div>
         </nav>
 
