@@ -32,8 +32,45 @@ function TopScreen() {
   const [difyResponse, setDifyResponse] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
   const [calendarEvents, setCalendarEvents] = useState([])
+  const [parsedResponse, setParsedResponse] = useState({})
 
   const difyClient = new DifyClient()
+
+  // difyレスポンスを解析する関数
+  const parseDifyResponse = (response) => {
+    console.log('解析対象のレスポンス:', response); // デバッグ用
+    
+    let feeling = '';
+    let genzyo = '';
+    let kadai = '';
+    
+    // 【今日のお天気模様】の抽出
+    const feelingMatch = response.match(/【今日のお天気模様】\s*\n([\s\S]*?)(?=【|$)/);
+    if (feelingMatch) {
+      feeling = feelingMatch[1].trim();
+    }
+    
+    // 【現状分析】の抽出
+    const genzyoMatch = response.match(/【現状分析】\s*\n([\s\S]*?)(?=【|$)/);
+    if (genzyoMatch) {
+      genzyo = genzyoMatch[1].trim();
+    }
+    
+    // 【課題設定】の抽出
+    const kadaiMatch = response.match(/【課題設定】\s*\n([\s\S]*?)(?=【|$)/);
+    if (kadaiMatch) {
+      kadai = kadaiMatch[1].trim();
+    }
+    
+    const result = {
+      feeling,
+      genzyo,
+      kadai
+    };
+    
+    console.log('解析結果:', result); // デバッグ用
+    return result;
+  };
 
   useEffect(() => {
     // ローカルストレージから固定テキストを読み込み
@@ -50,6 +87,7 @@ function TopScreen() {
       setCalendarEvents(JSON.parse(savedEvents))
     }
   }, [])
+
 
   // フェードアウト完了後にstateをリセット
   useEffect(() => {
@@ -86,6 +124,7 @@ function TopScreen() {
       if (result.success) {
         setMessage('Difyからの回答を受信しました')
         setDifyResponse(result.message)
+        setParsedResponse(parseDifyResponse(result.message))
         setShowMessage(true)
         
         // カレンダーに結果を保存
@@ -244,32 +283,57 @@ function TopScreen() {
           
           {showMessage ? (
             <div className="message-display">
-              <h2>{message}</h2>
-              
               {errorMessage && (
                 <div className="error-message">
                   <p><strong>エラー:</strong> {errorMessage}</p>
                 </div>
               )}
               
-              {difyResponse && (
-                <div className="dify-response">
-                  <h3>Difyからの回答:</h3>
-                  <div className="response-content">
-                    {difyResponse.split('\n').map((line, index) => (
-                      <p key={index}>{line}</p>
-                    ))}
+              {parsedResponse.feeling && (
+                <div className="simple-message-section">
+                  <div className="simple-message-label">● 今日のお天気模様</div>
+                  <div className="simple-message-content">
+                    {parsedResponse.feeling}
                   </div>
                 </div>
               )}
+              
+              {(parsedResponse.genzyo || parsedResponse.kadai) && (
+                <div className="simple-message-section">
+                  <div className="simple-message-label">● 次回の仕事へアドバイス</div>
+                  <div className="simple-message-content">
+                    {parsedResponse.genzyo && (
+                      <div className="advice-section">
+                        <strong>【現状分析】</strong><br />
+                        {parsedResponse.genzyo}
+                      </div>
+                    )}
+                    {parsedResponse.kadai && (
+                      <div className="advice-section">
+                        <strong>【課題設定】</strong><br />
+                        {parsedResponse.kadai}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* デバッグ用：解析結果が空の場合の表示 */}
+              {!parsedResponse.feeling && !parsedResponse.genzyo && !parsedResponse.kadai && difyResponse && (
+                <div className="debug-info">
+                  <h3>デバッグ情報</h3>
+                  <p><strong>受信したレスポンス:</strong></p>
+                  <pre style={{background: '#f5f5f5', padding: '10px', borderRadius: '4px', fontSize: '12px'}}>
+                    {difyResponse}
+                  </pre>
+                  <p><strong>解析結果:</strong></p>
+                  <pre style={{background: '#f5f5f5', padding: '10px', borderRadius: '4px', fontSize: '12px'}}>
+                    {JSON.stringify(parsedResponse, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="welcome-message">
-              <h2>メッセージ受信待機中</h2>
-              <p>上のフォームに入力して送信ボタンを押してください</p>
-              <p>入力内容はDifyに送信され、AIからの回答が表示されます</p>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

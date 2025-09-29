@@ -286,15 +286,16 @@ body {
 }
 
 .right-area {
-  width: 100%;
-  max-width: 800px;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  border-radius: 12px;
-  padding: 2rem;
+  width: 728px;
+  max-width: 728px;
+  background: transparent;
+  backdrop-filter: none;
+  border-radius: 0;
+  padding: 0;
   border: none;
   animation: fadeInUp 0.6s ease-out;
   box-shadow: none;
+  margin: 0 auto;
 }
 
 /* メイン入力フォームコンテナ - Group 33 */
@@ -439,11 +440,10 @@ body {
 
 /* メッセージ表示エリア */
 .message-display {
-  background: #e8f5e8;
-  border: 1px solid #c3e6c3;
-  padding: 1.5rem;
-  border-radius: 8px;
-  text-align: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  text-align: left;
   animation: slideInRight 0.5s ease-out;
 }
 
@@ -927,12 +927,12 @@ body {
 
 /* カレンダーウィジェット - シンプルデザイン */
 .calendar-widget {
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 1.5rem;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
   margin-bottom: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e9ecef;
+  box-shadow: none;
+  border: none;
 }
 
 .calendar-title {
@@ -989,23 +989,26 @@ body {
   border: 1px solid #dee2e6;
   font-weight: 600;
   text-align: center;
-  padding: 0.5rem;
-  font-size: 0.9rem;
+  padding: 0.3rem 0.2rem;
+  font-size: 0.8rem;
   color: #495057;
+  min-height: 28px;
+  max-height: 28px;
 }
 
 /* 日付セル */
 .calendar-container .fc-daygrid-day {
   border: 1px solid #dee2e6;
   background: white;
-  padding: 0.25rem;
-  min-height: 40px;
+  padding: 0.15rem;
+  min-height: 32px;
+  max-height: 32px;
 }
 
 .calendar-container .fc-daygrid-day-number {
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #495057;
-  padding: 0.25rem;
+  padding: 0.15rem;
   font-weight: 500;
 }
 
@@ -1018,12 +1021,12 @@ body {
   background-color: #3498db;
   color: white;
   border-radius: 50%;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 600;
 }
 
@@ -1042,10 +1045,10 @@ body {
 
 /* カレンダー内のお天気画像 */
 .weather-calendar-image {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 3px;
   display: block;
   margin: 0 auto;
 }
@@ -1098,14 +1101,15 @@ body {
     left: 16px;
   }
   
+  
   .calendar-container {
     height: auto;
     min-height: 300px;
   }
   
   .weather-calendar-image {
-    width: 18px;
-    height: 18px;
+    width: 14px;
+    height: 14px;
   }
 }
 
@@ -1169,6 +1173,7 @@ body {
     top: 40px;
   }
   
+  
   .submit-button-container {
     width: 100%;
     max-width: 320px;
@@ -1221,8 +1226,8 @@ body {
   }
   
   .weather-calendar-image {
-    width: 16px;
-    height: 16px;
+    width: 12px;
+    height: 12px;
   }
 
   .weather-image { width: 100%; }
@@ -1300,6 +1305,7 @@ body {
     font-size: 14px;
   }
   
+  
   .submit-button-container {
     width: 100%;
     max-width: 280px;
@@ -1366,8 +1372,8 @@ body {
   }
   
   .weather-calendar-image {
-    width: 14px;
-    height: 14px;
+    width: 10px;
+    height: 10px;
   }
 
   .weather-image { width: 100%; }
@@ -1502,4 +1508,49 @@ body {
   object-fit: cover;
   border-radius: 6px;
   display: block;
+}
+
+
+/* アドバイスセクション */
+.advice-section {
+  margin-bottom: 16px;
+  padding: 8px 0;
+}
+
+.advice-section strong {
+  color: #EAAA60;
+  font-weight: 600;
+}
+
+.advice-section:last-child {
+  margin-bottom: 0;
+}
+
+/* シンプルなメッセージセクション */
+.simple-message-section {
+  margin-bottom: 30px;
+}
+
+.simple-message-label {
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 22px;
+  color: #EAAA60;
+  margin-bottom: 16px;
+}
+
+.simple-message-content {
+  background: #FAE7D1;
+  border-radius: 8px;
+  padding: 16px;
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #0C0C0C;
+  white-space: pre-wrap;
+  word-wrap: break-word;
 }
