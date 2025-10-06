@@ -36,6 +36,27 @@ function TopScreen() {
 
   const difyClient = new DifyClient()
 
+  // THANK YOU!メッセージまでスクロールする関数
+  const scrollToThankYou = () => {
+    const thankYouMessage = document.querySelector('.thank-you-message')
+    if (thankYouMessage) {
+      // 要素の位置を取得
+      const elementRect = thankYouMessage.getBoundingClientRect()
+      const elementTop = elementRect.top + window.pageYOffset
+      
+      // ナビゲーションバーの高さを考慮してスクロール位置を調整
+      const navHeight = 48 // ナビゲーションバーの高さ
+      const offset = 20 // 追加の余白
+      const targetPosition = elementTop - navHeight - offset
+      
+      // スムーズスクロール
+      window.scrollTo({
+        top: targetPosition,
+        behavior: 'smooth'
+      })
+    }
+  }
+
   // difyレスポンスを解析する関数
   const parseDifyResponse = (response) => {
     console.log('解析対象のレスポンス:', response); // デバッグ用
@@ -44,20 +65,20 @@ function TopScreen() {
     let genzyo = '';
     let kadai = '';
     
-    // 【今日のお天気模様】の抽出
-    const feelingMatch = response.match(/【今日のお天気模様】\s*\n([\s\S]*?)(?=【|$)/);
+    // 【今日の気分】の抽出
+    const feelingMatch = response.match(/【今日の気分】\s*\n([\s\S]*?)(?=【|$)/);
     if (feelingMatch) {
       feeling = feelingMatch[1].trim();
     }
     
-    // 【現状分析】の抽出
-    const genzyoMatch = response.match(/【現状分析】\s*\n([\s\S]*?)(?=【|$)/);
+    // 【チェックポイント】の抽出
+    const genzyoMatch = response.match(/【チェックポイント】\s*\n([\s\S]*?)(?=【|$)/);
     if (genzyoMatch) {
       genzyo = genzyoMatch[1].trim();
     }
     
-    // 【課題設定】の抽出
-    const kadaiMatch = response.match(/【課題設定】\s*\n([\s\S]*?)(?=【|$)/);
+    // 【次へのステップ】の抽出
+    const kadaiMatch = response.match(/【次へのステップ】\s*\n([\s\S]*?)(?=【|$)/);
     if (kadaiMatch) {
       kadai = kadaiMatch[1].trim();
     }
@@ -153,12 +174,9 @@ function TopScreen() {
         setTimeout(() => {
           setIsFadingOut(true)
           
-          // フェードアウト完了後にカレンダーの上部まで自動スクロール
+          // フェードアウト完了後にTHANK YOU!メッセージの上部まで自動スクロール
           setTimeout(() => {
-            const calendarWidget = document.querySelector('.calendar-widget')
-            if (calendarWidget) {
-              calendarWidget.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            }
+            scrollToThankYou()
           }, 350) // フェードアウトアニメーション完了後にスクロール
         }, 500) // 少し遅延を設けて結果表示を確認できるようにする
       } else {
@@ -170,12 +188,9 @@ function TopScreen() {
         setTimeout(() => {
           setIsFadingOut(true)
           
-          // エラー時もフェードアウト完了後にカレンダーの上部まで自動スクロール
+          // エラー時もフェードアウト完了後にTHANK YOU!メッセージの上部まで自動スクロール
           setTimeout(() => {
-            const calendarWidget = document.querySelector('.calendar-widget')
-            if (calendarWidget) {
-              calendarWidget.scrollIntoView({ behavior: 'smooth', block: 'start' })
-            }
+            scrollToThankYou()
           }, 350)
         }, 500)
       }
@@ -189,12 +204,9 @@ function TopScreen() {
       setTimeout(() => {
         setIsFadingOut(true)
         
-        // エラー時もフェードアウト完了後にカレンダーの上部まで自動スクロール
+        // エラー時もフェードアウト完了後にTHANK YOU!メッセージの上部まで自動スクロール
         setTimeout(() => {
-          const calendarWidget = document.querySelector('.calendar-widget')
-          if (calendarWidget) {
-            calendarWidget.scrollIntoView({ behavior: 'smooth', block: 'start' })
-          }
+          scrollToThankYou()
         }, 350)
       }, 500)
     } finally {
@@ -224,7 +236,7 @@ function TopScreen() {
             
             <form onSubmit={handleSubmit} className="input-form">
               <div className="weather-group">
-                <div className="weather-label">● 今日の心のお天気は？</div>
+                <div className="weather-label">今日の心のお天気は？</div>
                 <div className="weather-image-container"></div>
                 <div className="weather-image-group" role="radiogroup" aria-label="今日の心のお天気は？">
                   {[5, 4, 3, 2, 1].map((num) => (
@@ -243,7 +255,7 @@ function TopScreen() {
               </div>
 
               <div className="reason-group">
-                <div className="reason-label">● お天気の理由を教えて！</div>
+                <div className="reason-label">お天気の理由を教えて！</div>
                 <div className="reason-textarea-bg"></div>
                 <textarea
                   id="input3"
@@ -276,6 +288,13 @@ function TopScreen() {
 
         {/* メッセージ表示エリア */}
         <div className="right-area">
+          {/* THANK YOU! メッセージ - 送信後に表示 */}
+          {showMessage && (
+            <div className="thank-you-message">
+              THANK YOU!
+            </div>
+          )}
+          
           {/* カレンダーウィジェット - 送信後に表示 */}
           {showMessage && <CalendarWidget events={calendarEvents} />}
           
@@ -289,29 +308,27 @@ function TopScreen() {
               
               {parsedResponse.feeling && (
                 <div className="simple-message-section">
-                  <div className="simple-message-label">● 今日のお天気模様</div>
+                  <div className="simple-message-label">今日の気分</div>
                   <div className="simple-message-content">
                     {parsedResponse.feeling}
                   </div>
                 </div>
               )}
               
-              {(parsedResponse.genzyo || parsedResponse.kadai) && (
+              {parsedResponse.genzyo && (
                 <div className="simple-message-section">
-                  <div className="simple-message-label">● 次回の仕事へアドバイス</div>
+                  <div className="simple-message-label">チェックポイント</div>
                   <div className="simple-message-content">
-                    {parsedResponse.genzyo && (
-                      <div className="advice-section">
-                        <strong>【現状分析】</strong><br />
-                        {parsedResponse.genzyo}
-                      </div>
-                    )}
-                    {parsedResponse.kadai && (
-                      <div className="advice-section">
-                        <strong>【課題設定】</strong><br />
-                        {parsedResponse.kadai}
-                      </div>
-                    )}
+                    {parsedResponse.genzyo}
+                  </div>
+                </div>
+              )}
+              
+              {parsedResponse.kadai && (
+                <div className="simple-message-section">
+                  <div className="simple-message-label">次へのステップ</div>
+                  <div className="simple-message-content">
+                    {parsedResponse.kadai}
                   </div>
                 </div>
               )}

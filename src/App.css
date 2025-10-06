@@ -542,7 +542,13 @@ body {
   font-weight: 400;
   font-size: 18px;
   line-height: 22px;
+  color: #555555;
+}
+
+.weather-label::before {
+  content: '●';
   color: #EAAA60;
+  margin-right: 8px;
 }
 
 /* お天気画像コンテナ */
@@ -576,7 +582,13 @@ body {
   font-weight: 400;
   font-size: 18px;
   line-height: 22px;
+  color: #555555;
+}
+
+.reason-label::before {
+  content: '●';
   color: #EAAA60;
+  margin-right: 8px;
 }
 
 /* 理由テキストエリア背景 */
@@ -931,14 +943,19 @@ body {
   }
 }
 
-/* カレンダーウィジェット - シンプルデザイン */
-.calendar-widget {
-  background: transparent;
-  border-radius: 0;
-  padding: 0;
-  margin-bottom: 1.5rem;
-  box-shadow: none;
-  border: none;
+/* THANK YOU! メッセージ */
+.thank-you-message {
+  font-family: 'Noto Sans JP', sans-serif;
+  font-style: normal;
+  font-weight: 900;
+  font-size: 32px;
+  line-height: 38px;
+  text-align: center;
+  letter-spacing: 0.1em;
+  color: #EAAA60;
+  margin-top: 60px;
+  margin-bottom: 20px;
+  animation: fadeInUp 0.6s ease-out;
 }
 
 .calendar-title {
@@ -1162,6 +1179,12 @@ body {
     width: 18px;
     height: 18px;
   }
+  
+  .thank-you-message {
+    font-size: 28px;
+    line-height: 34px;
+    margin-top: 50px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1289,6 +1312,12 @@ body {
   }
 
   .weather-image { width: 100%; }
+  
+  .thank-you-message {
+    font-size: 24px;
+    line-height: 30px;
+    margin-top: 40px;
+  }
   
   /* ローディングオーバーレイのレスポンシブ */
   .loading-icon {
@@ -1442,6 +1471,12 @@ body {
 
   .weather-image { width: 100%; }
   
+  .thank-you-message {
+    font-size: 20px;
+    line-height: 26px;
+    margin-top: 30px;
+  }
+  
   /* ローディングオーバーレイのレスポンシブ */
   .loading-icon {
     width: 60px;
@@ -1590,6 +1625,11 @@ body {
   margin-bottom: 0;
 }
 
+/* カレンダーウィジェット */
+.calendar-widget {
+  margin-bottom: 40px;
+}
+
 /* シンプルなメッセージセクション */
 .simple-message-section {
   margin-bottom: 30px;
@@ -1601,8 +1641,14 @@ body {
   font-weight: 400;
   font-size: 18px;
   line-height: 22px;
-  color: #EAAA60;
+  color: #555555;
   margin-bottom: 16px;
+}
+
+.simple-message-label::before {
+  content: '●';
+  color: #EAAA60;
+  margin-right: 8px;
 }
 
 .simple-message-content {
