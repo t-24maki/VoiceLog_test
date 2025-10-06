@@ -220,7 +220,14 @@ function TopScreen() {
       {isLoading && (
         <div className={`loading-overlay ${isFadingOut ? 'fade-out' : ''}`}>
           <div className="loading-content">
-            <img src="/loading-icon.svg" alt="分析中" className="loading-icon" />
+            <img src="/voice.png" alt="分析中" className="loading-icon" />
+            <div className="loading-dots">
+              <div className="loading-dot"></div>
+              <div className="loading-dot"></div>
+              <div className="loading-dot"></div>
+              <div className="loading-dot"></div>
+              <div className="loading-dot"></div>
+            </div>
             <p className="loading-text">分析中...</p>
           </div>
         </div>
