@@ -143,9 +143,14 @@
   box-sizing: border-box;
 }
 
+html {
+  background: linear-gradient(90deg, #e99c5b 0%, #e8d889 50%, #a3d0a3 100%);
+  min-height: 100%;
+}
+
 body {
   font-family: 'Noto Sans JP', sans-serif;
-  background: #ffffff;
+  background: linear-gradient(90deg, #e99c5b 0%, #e8d889 50%, #a3d0a3 100%);
   min-height: 100vh;
   color: #0C0C0C;
   width: 100vw;
@@ -183,12 +188,19 @@ body {
   justify-content: space-between;
   align-items: center;
   box-sizing: border-box;
+  min-height: 48px;
 }
 
 .nav-title {
   font-size: 1.8rem;
   font-weight: 700;
   color: #2c3e50;
+}
+
+.nav-title-image {
+  height: 24px;
+  width: auto;
+  object-fit: contain;
 }
 
 .nav-links {
@@ -229,6 +241,11 @@ body {
   flex: 1;
   display: flex;
   align-items: stretch;
+}
+
+/* ログイン画面以外（メイン画面）の場合は白い背景を適用 */
+.main-content:not(:has(.login-screen)) {
+  background: #ffffff;
 }
 
 .footer {
@@ -1426,6 +1443,10 @@ body {
   
   .nav-title {
     font-size: 1.5rem;
+  }
+  
+  .nav-title-image {
+    height: 20px;
   }
   
   .nav-links {

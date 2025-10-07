@@ -410,7 +410,7 @@ function LoginScreen({ onLogin }) {
     <div className="app">
       <nav className="navigation">
         <div className="nav-container">
-          <h2 className="nav-title">VoiceLogロゴ</h2>
+          <img src="/voicelog_header.png" alt="VoiceLog" className="nav-title-image" />
           <div className="nav-links">
             {/* ログイン画面ではナビゲーションリンクは非表示 */}
           </div>
@@ -524,7 +524,7 @@ function App() {
       <div className="app">
         <nav className="navigation">
           <div className="nav-container">
-            <h2 className="nav-title">VoiceLogロゴ</h2>
+            <img src="/voicelog_header.png" alt="VoiceLog" className="nav-title-image" />
           </div>
         </nav>
 
