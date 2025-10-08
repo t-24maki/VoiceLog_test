@@ -263,12 +263,12 @@ function TopScreen() {
 
               <div className="reason-group">
                 <div className="reason-label">お天気の理由を教えて！</div>
-                <div className="reason-textarea-bg"></div>
+                <div className={`reason-textarea-bg ${input3.trim() ? 'has-input' : ''}`}></div>
                 <textarea
                   id="input3"
                   value={input3}
                   onChange={(e) => setInput3(e.target.value)}
-                  placeholder="今日あったこと、できたこと、困ったこと、相談したいこと、嬉しかったこと、腹が立ったこと、なんでもいいので教えて！今日あったこと、できたこと、困ったこと、相談したいこと、嬉しかったこと、腹が立ったこと、なんでもいいので教えて！"
+                  placeholder="今日あったこと、できたこと、困ったこと、相談したいこと、嬉しかったこと、腹が立ったこと、なんでもいいので教えて！"
                   className="reason-textarea"
                   required
                 />

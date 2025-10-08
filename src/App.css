@@ -617,9 +617,14 @@ body {
   height: 152px;
   left: 0px;
   top: 24px;
-  background: #FAE7D1;
+  background: #E8E8E8;
   border-radius: 8px;
   z-index: 1;
+  transition: background 0.3s ease;
+}
+
+.reason-textarea-bg.has-input {
+  background: #FAE7D1;
 }
 
 /* 理由テキストエリア */
