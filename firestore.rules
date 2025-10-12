@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    // サインインしていて、かつURLの {uid} が自分自身であること
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    // voicelogsコレクション（開発用：認証なしで書き込み可能）
+    // 注意: 本番環境では適切な認証とセキュリティルールを実装してください
+    match /voicelogs/{docId} {
+      // 読み取りと作成を許可（開発用）
+      allow read, create: if true;
+      // 更新・削除は不可
+      allow update, delete: if false;
+    }
+
+    // users/{uid} の直下のドキュメント（プロフィール等）
+    match /users/{uid} {
+      // 取得は自分のものだけOK
+      allow get, list: if isOwner(uid);
+      // 作成（初回作成など）は自分のものだけOK
+      allow create: if isOwner(uid);
+      // 更新・削除は不可
+      allow update, delete: if false;
+    }
+
+    // users/{uid}/ 以下の全サブコレクション（entries など）
+    match /users/{uid}/{collection=**}/{docId} {
+      // 取得は自分のものだけOK
+      allow get, list: if isOwner(uid);
+      // 作成は自分のものだけOK
+      allow create: if isOwner(uid);
+      // 更新・削除は不可
+      allow update, delete: if false;
+    }
+  }
+}

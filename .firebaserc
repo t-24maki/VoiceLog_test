@@ -1,0 +1,6 @@
+{
+  "projects": {
+    "dev": "voicelog-dev"
+    // "prod": "VoiceLog-prod" 
+  }
+}

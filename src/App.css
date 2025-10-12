@@ -539,6 +539,70 @@ body {
   border: none;
 }
 
+/* 部署選択グループ */
+.department-group {
+  position: relative;
+  width: 100%;
+  max-width: 728px;
+  margin-top: 20px;
+  margin-bottom: 30px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* 部署ラベル */
+.department-label {
+  position: relative;
+  width: 100%;
+  height: 16px;
+  margin-bottom: 16px;
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 18px;
+  line-height: 22px;
+  color: #555555;
+}
+
+.department-label::before {
+  content: '●';
+  color: #EAAA60;
+  margin-right: 8px;
+}
+
+/* 部署セレクト */
+.department-select {
+  width: 728px;
+  max-width: 728px;
+  padding: 12px 16px;
+  font-family: 'Noto Sans JP';
+  font-style: normal;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
+  color: #0C0C0C;
+  background: #FAE7D1;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23555555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 20px;
+  padding-right: 40px;
+  transition: all 0.3s ease;
+}
+
+.department-select:hover {
+  background: #F5DCC0;
+}
+
+.department-select:focus {
+  box-shadow: none;
+}
+
 /* お天気選択グループ - Group 2 */
 .weather-group {
   position: relative;
@@ -1240,10 +1304,15 @@ body {
     height: auto;
   }
   
+  .department-group,
   .weather-group,
   .reason-group {
     width: 100%;
     margin-top: 20px;
+  }
+  
+  .department-select {
+    max-width: 100%;
   }
   
   .weather-label,
@@ -1383,10 +1452,21 @@ body {
     height: auto;
   }
   
+  .department-group,
   .weather-group,
   .reason-group {
     width: 100%;
     margin-top: 15px;
+  }
+  
+  .department-label {
+    font-size: 14px;
+  }
+  
+  .department-select {
+    max-width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
   }
   
   .weather-label,

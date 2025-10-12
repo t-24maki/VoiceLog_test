@@ -1,9 +1,12 @@
 import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import jaLocale from '@fullcalendar/core/locales/ja'
 import { DifyClient } from './config/dify'
+import { saveVoiceLog, getUserInputCount, getUserVoiceLogs } from './services/voiceLogService'
+import { auth, googleProvider } from './config/firebase'
+import { signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth'
 import './App.css'
 
 
@@ -20,7 +23,7 @@ const convertNumberToSymbol = (number) => {
 }
 
 // トップ画面コンポーネント
-function TopScreen() {
+function TopScreen({ user }) {
   const [input1, setInput1] = useState('プロップ') // デフォルト値を設定
   const [input2, setInput2] = useState('1')
   const [input3, setInput3] = useState('')
@@ -33,6 +36,7 @@ function TopScreen() {
   const [errorMessage, setErrorMessage] = useState('')
   const [calendarEvents, setCalendarEvents] = useState([])
   const [parsedResponse, setParsedResponse] = useState({})
+  const [inputCount, setInputCount] = useState(0)
 
   const difyClient = new DifyClient()
 
@@ -93,6 +97,45 @@ function TopScreen() {
     return result;
   };
 
+  // Firestoreからカレンダーイベントを読み込む関数
+  const loadCalendarEvents = useCallback(async () => {
+    if (user && user.uid) {
+      const voiceLogs = await getUserVoiceLogs(user.uid)
+      
+      // 日付ごとにグループ化し、各日付の最初の記録のみを取得
+      const eventsByDate = {}
+      voiceLogs.forEach((log) => {
+        if (log.datetime && log.weather_score) {
+          const dateString = log.datetime.toISOString().split('T')[0]
+          
+          // その日付の記録がまだない、または既存の記録より古い場合に更新
+          if (!eventsByDate[dateString] || log.datetime < eventsByDate[dateString].datetime) {
+            eventsByDate[dateString] = {
+              datetime: log.datetime,
+              weatherNumber: log.weather_score
+            }
+          }
+        }
+      })
+      
+      // カレンダーイベントに変換
+      const events = Object.keys(eventsByDate).map((dateString) => {
+        const symbol = convertNumberToSymbol(eventsByDate[dateString].weatherNumber)
+        return {
+          id: dateString,
+          title: symbol,
+          date: dateString,
+          weatherNumber: eventsByDate[dateString].weatherNumber,
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
+          textColor: '#000000'
+        }
+      })
+      
+      setCalendarEvents(events)
+    }
+  }, [user])
+
   useEffect(() => {
     // ローカルストレージから固定テキストを読み込み
     const savedText = localStorage.getItem('fixedText')
@@ -102,12 +145,18 @@ function TopScreen() {
       setFixedText('デフォルトの固定テキスト')
     }
 
-    // ローカルストレージからカレンダーイベントを読み込み
-    const savedEvents = localStorage.getItem('calendarEvents')
-    if (savedEvents) {
-      setCalendarEvents(JSON.parse(savedEvents))
+    // ユーザーの入力回数を取得
+    const fetchInputCount = async () => {
+      if (user && user.uid) {
+        const count = await getUserInputCount(user.uid)
+        setInputCount(count)
+      }
     }
-  }, [])
+    fetchInputCount()
+    
+    // Firestoreからカレンダーイベントを読み込み
+    loadCalendarEvents()
+  }, [user, loadCalendarEvents])
 
 
   // フェードアウト完了後にstateをリセット
@@ -145,30 +194,40 @@ function TopScreen() {
       if (result.success) {
         setMessage('Difyからの回答を受信しました')
         setDifyResponse(result.message)
-        setParsedResponse(parseDifyResponse(result.message))
+        const parsed = parseDifyResponse(result.message)
+        setParsedResponse(parsed)
         setShowMessage(true)
         
-        // カレンダーに結果を保存
-        const today = new Date()
-        const dateString = today.toISOString().split('T')[0]
-        const symbol = convertNumberToSymbol(input2)
-        
-        const newEvent = {
-          id: dateString,
-          title: symbol,
-          date: dateString,
-          weatherNumber: input2, // 画像番号を保存
-          backgroundColor: 'transparent',
-          borderColor: 'transparent',
-          textColor: '#000000'
+        // Firestoreにデータを保存
+        const voiceLogData = {
+          domain: null, // 現状はnull
+          user: user ? user.displayName || user.email : null, // ユーザー名を保存
+          user_email: user ? user.email : null, // メールアドレスを保存
+          user_uid: user ? user.uid : null, // UIDを保存
+          division: input1,
+          weather_score: input2,
+          weather_reason: input3,
+          dify_feeling: parsed.feeling || '',
+          dify_checkpoint: parsed.genzyo || '',
+          dify_nextstep: parsed.kadai || ''
         }
         
-        // 既存のイベントを更新または新規追加
-        const updatedEvents = calendarEvents.filter(event => event.id !== dateString)
-        updatedEvents.push(newEvent)
-        
-        setCalendarEvents(updatedEvents)
-        localStorage.setItem('calendarEvents', JSON.stringify(updatedEvents))
+        // Firestoreに保存（非同期処理だが、エラーハンドリングのみ実施）
+        saveVoiceLog(voiceLogData).then(saveResult => {
+          if (saveResult.success) {
+            console.log('Firestoreへの保存に成功しました。ID:', saveResult.id)
+            // 保存成功後、入力回数を更新
+            if (user && user.uid) {
+              getUserInputCount(user.uid).then(count => {
+                setInputCount(count)
+              })
+            }
+            // カレンダーイベントを再読み込み
+            loadCalendarEvents()
+          } else {
+            console.error('Firestoreへの保存に失敗しました:', saveResult.error)
+          }
+        })
         
         // 分析完了後、フェードアウトアニメーションを開始
         setTimeout(() => {
@@ -239,9 +298,25 @@ function TopScreen() {
             <div className="weather-image-container">
               <img src="/weather-placeholder.png" alt="お天気プレースホルダー" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
             </div>
-            <div className="input-count">2025.0000現在_◯◯さん入力0回</div>
+            <div className="input-count">
+              {new Date().getFullYear()}.{String(new Date().getMonth() + 1).padStart(4, '0')}現在_
+              {user ? (user.displayName || user.email.split('@')[0]) : '◯◯'}さん入力{inputCount}回
+            </div>
             
             <form onSubmit={handleSubmit} className="input-form">
+              <div className="department-group">
+                <div className="department-label">部署</div>
+                <select
+                  id="department"
+                  value={input1}
+                  onChange={(e) => setInput1(e.target.value)}
+                  className="department-select"
+                >
+                  <option value="プロップ">プロップ</option>
+                  <option value="etc">etc</option>
+                </select>
+              </div>
+
               <div className="weather-group">
                 <div className="weather-label">今日の心のお天気は？</div>
                 <div className="weather-image-container"></div>
@@ -401,9 +476,36 @@ function CalendarWidget({ events = [] }) {
 
 // ログイン画面コンポーネント
 function LoginScreen({ onLogin }) {
-  const handleGoogleLogin = () => {
-    // ログイン機能は後で実装するため、現在はメイン画面に遷移
-    onLogin()
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true)
+    setError('')
+    
+    try {
+      // Google認証のポップアップを表示
+      const result = await signInWithPopup(auth, googleProvider)
+      const user = result.user
+      
+      console.log('ログイン成功:', user)
+      
+      // ログイン成功時にコールバックを呼び出し
+      onLogin(user)
+    } catch (error) {
+      console.error('ログインエラー:', error)
+      
+      // エラーメッセージを設定
+      if (error.code === 'auth/popup-closed-by-user') {
+        setError('ログインがキャンセルされました')
+      } else if (error.code === 'auth/popup-blocked') {
+        setError('ポップアップがブロックされました。ブラウザの設定を確認してください。')
+      } else {
+        setError('ログインに失敗しました: ' + error.message)
+      }
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -433,8 +535,25 @@ function LoginScreen({ onLogin }) {
               
               <div className="login-footer">
                 <div className="login-text">新規登録（ログイン）</div>
-                <button className="google-login-btn" onClick={handleGoogleLogin}>
-                  Googleアカウントでログイン
+                {error && (
+                  <div style={{
+                    color: '#dc3545',
+                    marginBottom: '15px',
+                    padding: '10px',
+                    backgroundColor: '#f8d7da',
+                    border: '1px solid #f5c6cb',
+                    borderRadius: '4px',
+                    fontSize: '14px'
+                  }}>
+                    {error}
+                  </div>
+                )}
+                <button 
+                  className="google-login-btn" 
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'ログイン中...' : 'Googleアカウントでログイン'}
                 </button>
               </div>
             </div>
@@ -508,14 +627,48 @@ function SettingsScreen() {
 
 // メインAppコンポーネント
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const handleLogin = () => {
-    setIsLoggedIn(true)
+  useEffect(() => {
+    // 認証状態の変更を監視
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser)
+      setLoading(false)
+      
+      if (currentUser) {
+        console.log('ログイン中のユーザー:', currentUser)
+      } else {
+        console.log('ログインしていません')
+      }
+    })
+
+    // クリーンアップ関数
+    return () => unsubscribe()
+  }, [])
+
+  const handleLogin = (loggedInUser) => {
+    setUser(loggedInUser)
+  }
+
+  // ローディング中
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        fontSize: '18px',
+        color: '#666'
+      }}>
+        読み込み中...
+      </div>
+    )
   }
 
   // ログインしていない場合はログイン画面を表示
-  if (!isLoggedIn) {
+  if (!user) {
     return <LoginScreen onLogin={handleLogin} />
   }
 
@@ -530,7 +683,7 @@ function App() {
 
         <main className="main-content">
           <Routes>
-            <Route path="/" element={<TopScreen />} />
+            <Route path="/" element={<TopScreen user={user} />} />
             <Route path="/settings" element={<SettingsScreen />} />
           </Routes>
         </main>
