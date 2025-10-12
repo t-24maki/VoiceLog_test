@@ -37,6 +37,7 @@ function TopScreen({ user }) {
   const [calendarEvents, setCalendarEvents] = useState([])
   const [parsedResponse, setParsedResponse] = useState({})
   const [inputCount, setInputCount] = useState(0)
+  const [isReasonFocused, setIsReasonFocused] = useState(false)
 
   const difyClient = new DifyClient()
 
@@ -294,13 +295,12 @@ function TopScreen({ user }) {
         {/* 入力フォーム */}
         <div className="left-area">
           <div className="input-section">
-            <div className="greeting-message">お仕事お疲れ様でした！</div>
+            <div className="greeting-message">{user ? (user.displayName || user.email.split('@')[0]) : '◯◯'}さん、お仕事お疲れ様でした！</div>
             <div className="weather-image-container">
               <img src="/weather-placeholder.png" alt="お天気プレースホルダー" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
             </div>
             <div className="input-count">
-              {new Date().getFullYear()}.{String(new Date().getMonth() + 1).padStart(4, '0')}現在_
-              {user ? (user.displayName || user.email.split('@')[0]) : '◯◯'}さん入力{inputCount}回
+              {inputCount}回目の入力ありがとうございます
             </div>
             
             <form onSubmit={handleSubmit} className="input-form">
@@ -338,11 +338,13 @@ function TopScreen({ user }) {
 
               <div className="reason-group">
                 <div className="reason-label">お天気の理由を教えて！</div>
-                <div className={`reason-textarea-bg ${input3.trim() ? 'has-input' : ''}`}></div>
+                <div className={`reason-textarea-bg ${input3.trim() || isReasonFocused ? 'has-input' : ''}`}></div>
                 <textarea
                   id="input3"
                   value={input3}
                   onChange={(e) => setInput3(e.target.value)}
+                  onFocus={() => setIsReasonFocused(true)}
+                  onBlur={() => setIsReasonFocused(false)}
                   placeholder="今日あったこと、できたこと、困ったこと、相談したいこと、嬉しかったこと、腹が立ったこと、なんでもいいので教えて！"
                   className="reason-textarea"
                   required
@@ -651,6 +653,18 @@ function App() {
     setUser(loggedInUser)
   }
 
+  const handleLogout = async () => {
+    if (window.confirm('ログアウトしますか？')) {
+      try {
+        await signOut(auth)
+        console.log('ログアウトしました')
+      } catch (error) {
+        console.error('ログアウトエラー:', error)
+        alert('ログアウトに失敗しました')
+      }
+    }
+  }
+
   // ローディング中
   if (loading) {
     return (
@@ -678,6 +692,7 @@ function App() {
         <nav className="navigation">
           <div className="nav-container">
             <img src="/voicelog_header.png" alt="VoiceLog" className="nav-title-image" />
+            <button className="logout-btn" onClick={handleLogout}>ログアウト</button>
           </div>
         </nav>
 

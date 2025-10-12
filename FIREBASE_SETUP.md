@@ -152,3 +152,4 @@ match /voicelogs/{docId} {
 5. **データエクスポート機能**
    - CSV/Excel形式でのデータダウンロード
 
+
