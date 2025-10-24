@@ -17,7 +17,11 @@
       "predeploy": [
         "npm --prefix \"$RESOURCE_DIR\" run lint",
         "npm --prefix \"$RESOURCE_DIR\" run build"
-      ]
+      ],
+      "runtime": "nodejs20",
+      "environmentVariables": {
+        "DIFY_API_ENDPOINT": "https://dotsconnection.jp/v1/workflows/run"
+      }
     }
   ],
   "hosting": {

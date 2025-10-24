@@ -1,59 +1,55 @@
-// Vercel Serverless Function用のクライアント（フロントエンド用）
+// Firebase Functions用のクライアント（フロントエンド用）
+import { getFunctions, httpsCallable } from 'firebase/functions';
+
 export class DifyClient {
   constructor() {
-    // 環境に応じてバックエンドURLを自動判定
-    this.backendEndpoint = this.getBackendEndpoint();
-  }
-
-  getBackendEndpoint() {
-    // 開発環境の場合
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      return 'http://localhost:3001';
-    }
-    
-    // 本番環境の場合（Vercelデプロイ）
-    return window.location.origin;
+    // asia-northeast1リージョンを指定
+    this.functions = getFunctions(undefined, 'asia-northeast1');
+    this.callDify = httpsCallable(this.functions, 'callDify');
   }
 
   async sendMessage(department, rating, details) {
     try {
-      const response = await fetch(`${this.backendEndpoint}/api/dify/send`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Firebase FunctionsのcallDifyを呼び出し
+      const result = await this.callDify({
+        inputs: {
           department,
           rating,
           details
-        })
+        }
       });
 
-      if (!response.ok) {
-        let errorMessage = `Backend API error: ${response.status} ${response.statusText}`;
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          // JSON解析に失敗した場合はデフォルトメッセージを使用
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
+      // Firebase Functionsから返されるデータを処理
+      const data = result.data;
+      console.log('Firebase Functionsから返されたデータ:', data);
+      
       return {
         success: true,
-        message: data.message,
-        text: data.text,  // Difyの返却値textを取得
+        message: 'Difyからの回答を受信しました',
+        text: data.text || data.message,  // Difyの返却値
         conversationId: data.conversationId,
         messageId: data.messageId
       };
     } catch (error) {
-      console.error('Backend API error:', error);
+      console.error('Firebase Functions error:', error);
+      
+      // Firebase Functionsのエラーを処理
+      let errorMessage = 'サーバーとの通信中にエラーが発生しました。';
+      
+      if (error.code === 'functions/unauthenticated') {
+        errorMessage = '認証が必要です。ログインしてください。';
+      } else if (error.code === 'functions/invalid-argument') {
+        errorMessage = '入力データが正しくありません。';
+      } else if (error.code === 'functions/internal') {
+        errorMessage = 'サーバー内部エラーが発生しました。';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       return {
         success: false,
-        error: error.message,
-        message: 'サーバーとの通信中にエラーが発生しました。'
+        error: errorMessage,
+        message: errorMessage
       };
     }
   }

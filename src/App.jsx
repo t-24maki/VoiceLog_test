@@ -194,8 +194,8 @@ function TopScreen({ user }) {
       
       if (result.success) {
         setMessage('Difyからの回答を受信しました')
-        setDifyResponse(result.message)
-        const parsed = parseDifyResponse(result.message)
+        setDifyResponse(result.text)  // result.textを使用（実際のDify APIレスポンス）
+        const parsed = parseDifyResponse(result.text)  // result.textを使用
         setParsedResponse(parsed)
         setShowMessage(true)
         
