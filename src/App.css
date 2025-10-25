@@ -1743,22 +1743,28 @@ body {
   padding: 0.25rem;
   background: transparent;
   cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.1s ease;
-  width: 80px;
-  height: 80px;
+  transition: border-color 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
+  width: 88px;
+  height: 88px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
+/* 選択されていないボタンのスタイル */
+.weather-image-group:has(.weather-image-button.active) .weather-image-button:not(.active) {
+  transform: scale(0.9);
+  opacity: 0.5;
+}
+
 .weather-image-button:hover {
-  border-color: #3498db;
+  border-color: transparent;
 }
 
 .weather-image-button.active,
 .weather-image-button[aria-pressed="true"] {
-  border-color: #2980b9;
-  box-shadow: 0 2px 6px rgba(52, 152, 219, 0.3);
+  border-color: transparent;
+  box-shadow: none;
 }
 
 .weather-image {
