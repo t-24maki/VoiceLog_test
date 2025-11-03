@@ -663,9 +663,6 @@ body {
   width: 100%;
   max-width: 250px;
   aspect-ratio: 1;
-  background: url('/public/weather-bg.png');
-  background-size: cover;
-  background-position: center;
   margin: 20px auto 16px;
 }
 

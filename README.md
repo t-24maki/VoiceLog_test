@@ -89,12 +89,16 @@ npm run preview
 
 ## データ構造
 
+### voicelogsコレクション
+
 Firestoreの`voicelogs`コレクションには以下のフィールドが保存されます：
 
 | フィールド名 | 型 | 説明 |
 |------------|------|------|
 | domain | string/null | ドメイン名（現状はnull） |
-| user | string/null | ユーザー名（現状はnull） |
+| user | string/null | ユーザー名（Googleアカウント名） |
+| user_email | string/null | ユーザーのメールアドレス |
+| user_uid | string/null | Firebase認証のUID |
 | datetime | timestamp | データ登録日時（サーバータイムスタンプ） |
 | division | string | 部署名（例: "プロップ"） |
 | weather_score | string | 心のお天気スコア（"1"〜"5"） |
@@ -102,6 +106,42 @@ Firestoreの`voicelogs`コレクションには以下のフィールドが保存
 | dify_feeling | string | 今日の気分（Difyからの応答） |
 | dify_checkpoint | string | チェックポイント（Difyからの応答） |
 | dify_nextstep | string | 次へのステップ（Difyからの応答） |
+
+### domainsコレクション（会員管理）
+
+URLパスごとの許可ユーザーを管理するコレクションです。
+
+**コレクション構造**: `domains/{domainId}`
+
+**フィールド構造**:
+```json
+{
+  "allowed_users": [
+    {
+      "email": "user@example.com",
+      "name": "ユーザー名"
+    }
+  ]
+}
+```
+
+**例**: `domains/test` ドキュメントに以下のデータを追加：
+```json
+{
+  "allowed_users": [
+    {
+      "email": "tanaka@example.com",
+      "name": "田中太郎"
+    },
+    {
+      "email": "suzuki@example.com",
+      "name": "鈴木花子"
+    }
+  ]
+}
+```
+
+これにより、`https://voicelog.jp/test/` にアクセスできるユーザーを管理できます。
 
 ## トラブルシューティング
 
@@ -119,3 +159,63 @@ Firestoreの`voicelogs`コレクションには以下のフィールドが保存
 - Firebaseプロジェクトが有効化されているか確認
 - Firestoreのセキュリティルール（`firestore.rules`）が適切に設定されているか確認
 - ブラウザのコンソールでエラーメッセージを確認
+
+### 会員管理機能のセットアップ
+
+1. Firebase Consoleにアクセス
+   - [Firestore Database](https://console.firebase.google.com/project/voicelog-dev/firestore)を開く
+
+2. domainsコレクションを作成
+   - 「コレクションを開始」をクリック
+   - コレクションID: `domains` を入力
+
+3. 各ドメインのドキュメントを作成
+   - ドキュメントID: URLパスのIDを入力（例: `test`）
+   - フィールド名: `allowed_users`
+   - タイプ: `配列`
+   - 値: `map` オブジェクトの配列
+     - `email`: ユーザーのメールアドレス
+     - `name`: ユーザー名（Googleアカウント名）
+
+4. セキュリティルールをデプロイ
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+
+これで、指定したメールアドレスのユーザーのみがログインできるようになります。
+
+#### 大量のユーザーを一括登録する場合
+
+Firebase ConsoleのUIでは大変なので、Pythonスクリプトを使用して一括登録できます：
+
+##### Pythonスクリプトを使用する方法（推奨）
+
+1. 必要パッケージをインストール：
+```bash
+pip install firebase-admin
+```
+
+2. サービスアカウントキーを取得：
+   - [Firebase Console](https://console.firebase.google.com/project/voicelog-dev/settings/serviceaccounts/adminsdk)にアクセス
+   - 「新しい秘密鍵の生成」をクリック
+   - ダウンロードしたJSONファイルをプロジェクトルートに配置（例: `serviceAccountKey.json`）
+
+3. CSVファイルを作成（`users.csv`）：
+```csv
+email,name
+user1@example.com,User 1
+user2@example.com,User 2
+user3@example.com,User 3
+```
+
+4. ユーザーを追加：
+```bash
+python scripts/add-users.py add-csv test users.csv
+```
+
+5. 許可ユーザーリストを表示：
+```bash
+python scripts/add-users.py list test
+```
+
+**注意**: サービスアカウントキーは秘密情報です。Gitにコミットしないよう注意してください。

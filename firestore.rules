@@ -35,5 +35,13 @@ service cloud.firestore {
       // 更新・削除は不可
       allow update, delete: if false;
     }
+
+    // domainsコレクション：URL IDごとの許可ユーザー管理
+    match /domains/{domainId} {
+      // 認証済みユーザーのみ読み取り可能
+      allow read: if request.auth != null;
+      // 書き込みはサーバーサイドのみ許可（クライアントからは不可）
+      allow create, update, delete: if false;
+    }
   }
 }

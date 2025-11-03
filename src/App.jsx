@@ -1,10 +1,11 @@
-import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import jaLocale from '@fullcalendar/core/locales/ja'
 import { DifyClient } from './config/dify'
 import { saveVoiceLog, getUserInputCount, getUserVoiceLogs } from './services/voiceLogService'
+import { checkUserAllowed, extractDomainIdFromPath } from './services/userService'
 import { auth, googleProvider } from './config/firebase'
 import { signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth'
 import './App.css'
@@ -477,7 +478,7 @@ function CalendarWidget({ events = [] }) {
 }
 
 // ログイン画面コンポーネント
-function LoginScreen({ onLogin }) {
+function LoginScreen() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -487,13 +488,8 @@ function LoginScreen({ onLogin }) {
     
     try {
       // Google認証のポップアップを表示
-      const result = await signInWithPopup(auth, googleProvider)
-      const user = result.user
-      
-      console.log('ログイン成功:', user)
-      
-      // ログイン成功時にコールバックを呼び出し
-      onLogin(user)
+      // 認証チェックはonAuthStateChangedで実行されるため、ここでは不要
+      await signInWithPopup(auth, googleProvider)
     } catch (error) {
       console.error('ログインエラー:', error)
       
@@ -627,6 +623,35 @@ function SettingsScreen() {
   )
 }
 
+// 認証済みユーザーのメインコンテンツ
+function AuthenticatedApp({ user, onLogout }) {
+  return (
+    <div className="app">
+      <nav className="navigation">
+        <div className="nav-container">
+          <img src="/voicelog_header.png" alt="VoiceLog" className="nav-title-image" />
+          <button className="logout-btn" onClick={onLogout}>ログアウト</button>
+        </div>
+      </nav>
+
+      <main className="main-content">
+        <Routes>
+          <Route path="/" element={<TopScreen user={user} />} />
+          <Route path="/:domainId" element={<TopScreen user={user} />} />
+          <Route path="/settings" element={<SettingsScreen />} />
+          <Route path="/:domainId/settings" element={<SettingsScreen />} />
+        </Routes>
+      </main>
+
+      <footer className="footer">
+        <div className="footer-container">
+          <p className="footer-text">© {new Date().getFullYear()} VoiceLog</p>
+        </div>
+      </footer>
+    </div>
+  )
+}
+
 // メインAppコンポーネント
 function App() {
   const [user, setUser] = useState(null)
@@ -634,24 +659,38 @@ function App() {
 
   useEffect(() => {
     // 認証状態の変更を監視
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setLoading(false)
       
       if (currentUser) {
         console.log('ログイン中のユーザー:', currentUser)
+        
+        // ドメインIDが存在する場合、許可ユーザーかチェック
+        const domainId = extractDomainIdFromPath(window.location.pathname)
+        if (domainId) {
+          const checkResult = await checkUserAllowed(domainId, currentUser.email)
+          
+          if (!checkResult.allowed) {
+            // 許可されていない場合はログアウト
+            console.log('許可されていないユーザーです')
+            await signOut(auth)
+            alert(checkResult.error || 'このドメインへのアクセス権限がありません')
+            return
+          }
+          
+          console.log('ユーザー許可確認成功')
+        }
+        
+        setUser(currentUser)
       } else {
         console.log('ログインしていません')
+        setUser(null)
       }
     })
 
     // クリーンアップ関数
     return () => unsubscribe()
   }, [])
-
-  const handleLogin = (loggedInUser) => {
-    setUser(loggedInUser)
-  }
 
   const handleLogout = async () => {
     if (window.confirm('ログアウトしますか？')) {
@@ -681,34 +720,23 @@ function App() {
     )
   }
 
-  // ログインしていない場合はログイン画面を表示
-  if (!user) {
-    return <LoginScreen onLogin={handleLogin} />
-  }
+  // サブパス対応: URLから動的にbasenameを検出
+  // 例: /test/ または /test2/ から basename を取得
+  const basename = (() => {
+    if (import.meta.env.DEV) return '';
+    const path = window.location.pathname;
+    // /test/ または /test2/ のようなパターンを検出
+    const match = path.match(/^\/([^\/]+)/);
+    return match ? `/${match[1]}` : '';
+  })();
 
   return (
-    <Router>
-      <div className="app">
-        <nav className="navigation">
-          <div className="nav-container">
-            <img src="/voicelog_header.png" alt="VoiceLog" className="nav-title-image" />
-            <button className="logout-btn" onClick={handleLogout}>ログアウト</button>
-          </div>
-        </nav>
-
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<TopScreen user={user} />} />
-            <Route path="/settings" element={<SettingsScreen />} />
-          </Routes>
-        </main>
-
-        <footer className="footer">
-          <div className="footer-container">
-            <p className="footer-text">© {new Date().getFullYear()} VoiceLog</p>
-          </div>
-        </footer>
-      </div>
+    <Router basename={basename}>
+      {!user ? (
+        <LoginScreen />
+      ) : (
+        <AuthenticatedApp user={user} onLogout={handleLogout} />
+      )}
     </Router>
   )
 }
