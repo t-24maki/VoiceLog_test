@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import jaLocale from '@fullcalendar/core/locales/ja'
 import { DifyClient } from './config/dify'
 import { saveVoiceLog, getUserInputCount, getUserVoiceLogs } from './services/voiceLogService'
-import { checkUserAllowed, extractDomainIdFromPath } from './services/userService'
+import { checkUserAllowed, extractDomainIdFromPath, getDomainDepartments } from './services/userService'
 import { auth, googleProvider } from './config/firebase'
 import { signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth'
 import './App.css'
@@ -39,6 +39,7 @@ function TopScreen({ user }) {
   const [parsedResponse, setParsedResponse] = useState({})
   const [inputCount, setInputCount] = useState(0)
   const [isReasonFocused, setIsReasonFocused] = useState(false)
+  const [departments, setDepartments] = useState(['プロップ', 'etc']) // 部署一覧のstate
 
   const difyClient = new DifyClient()
 
@@ -158,6 +159,19 @@ function TopScreen({ user }) {
     
     // Firestoreからカレンダーイベントを読み込み
     loadCalendarEvents()
+
+    // ドメインに基づいて部署一覧を取得
+    const fetchDepartments = async () => {
+      const domainId = extractDomainIdFromPath(window.location.pathname)
+      const departmentList = await getDomainDepartments(domainId)
+      setDepartments(departmentList)
+      
+      // 現在の選択値が新しい一覧に含まれていない場合、最初の部署を選択
+      if (departmentList.length > 0 && !departmentList.includes(input1)) {
+        setInput1(departmentList[0])
+      }
+    }
+    fetchDepartments()
   }, [user, loadCalendarEvents])
 
 
@@ -313,8 +327,11 @@ function TopScreen({ user }) {
                   onChange={(e) => setInput1(e.target.value)}
                   className="department-select"
                 >
-                  <option value="プロップ">プロップ</option>
-                  <option value="etc">etc</option>
+                  {departments.map((dept) => (
+                    <option key={dept} value={dept}>
+                      {dept}
+                    </option>
+                  ))}
                 </select>
               </div>
 

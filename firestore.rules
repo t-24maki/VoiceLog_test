@@ -43,5 +43,13 @@ service cloud.firestore {
       // 書き込みはサーバーサイドのみ許可（クライアントからは不可）
       allow create, update, delete: if false;
     }
+
+    // domainDepartmentsコレクション：ドメインごとの部署一覧管理
+    match /domainDepartments/{domainId} {
+      // 認証済みユーザーのみ読み取り可能
+      allow read: if request.auth != null;
+      // 書き込みはサーバーサイドのみ許可（クライアントからは不可）
+      allow create, update, delete: if false;
+    }
   }
 }

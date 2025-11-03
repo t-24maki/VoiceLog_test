@@ -72,6 +72,78 @@ npm run build
 npm run preview
 ```
 
+## 本番環境へのデプロイ
+
+### 前提条件
+
+1. Firebase CLIがインストールされていること
+   ```bash
+   npm install -g firebase-tools
+   ```
+
+2. Firebaseにログインしていること
+   ```bash
+   firebase login
+   ```
+
+3. プロジェクトが正しく設定されていること
+   - `.firebaserc`でプロジェクトIDが設定されている
+
+### デプロイ手順
+
+1. **コードをビルド**
+   ```bash
+   npm run build
+   ```
+   これにより`dist`ディレクトリにビルド済みファイルが生成されます。
+
+2. **Firestoreセキュリティルールをデプロイ**
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+   新しく追加した`domainDepartments`コレクションのルールが反映されます。
+
+3. **Firestoreインデックスをデプロイ（必要に応じて）**
+   ```bash
+   firebase deploy --only firestore:indexes
+   ```
+
+4. **Firebase Hostingにデプロイ**
+   ```bash
+   firebase deploy --only hosting
+   ```
+   または、全てまとめてデプロイする場合：
+   ```bash
+   firebase deploy
+   ```
+
+5. **Firebase Functionsをデプロイ（API機能が必要な場合）**
+   ```bash
+   firebase deploy --only functions
+   ```
+
+### デプロイ後の確認事項
+
+1. **Firestoreデータの設定**
+   - [Firestore Database](https://console.firebase.google.com/project/voicelog-dev/firestore)にアクセス
+   - `domainDepartments`コレクションが存在し、各ドメインの部署一覧が設定されているか確認
+   - 例: `domainDepartments/test`に`departments: ["test-dep1", "test-dep2", ...]`が設定されているか
+
+2. **本番環境での動作確認**
+   - `https://voicelog.jp/test/` にアクセス
+   - ログインが正常に動作するか確認
+   - 部署一覧が正しく表示されるか確認
+
+3. **エラーの確認**
+   - ブラウザの開発者ツール（F12）でConsoleタブを確認
+   - NetworkタブでAPIリクエストが正常に完了しているか確認
+
+### 注意事項
+
+- **環境変数の設定**: 本番環境でもFirebaseの設定が必要です（`.env`ファイルの設定は開発環境用で、本番環境ではFirebase Consoleで設定されます）
+- **Firestoreルールの更新**: `domainDepartments`コレクションのルールを追加したため、必ずFirestoreルールをデプロイしてください
+- **データの事前準備**: デプロイ前にFirebase Consoleで`domainDepartments`コレクションを作成し、各ドメインの部署一覧を設定しておくことを推奨します
+
 ## 使用方法
 
 1. フロントエンド（http://localhost:5173）にアクセス
@@ -142,6 +214,64 @@ URLパスごとの許可ユーザーを管理するコレクションです。
 ```
 
 これにより、`https://voicelog.jp/test/` にアクセスできるユーザーを管理できます。
+
+### domainDepartmentsコレクション（部署一覧管理）
+
+ドメインごとに表示する部署一覧を管理するコレクションです。
+
+**コレクション構造**: `domainDepartments/{domainId}`
+
+**フィールド構造**:
+```json
+{
+  "departments": [
+    "部署名1",
+    "部署名2",
+    "部署名3"
+  ]
+}
+```
+
+**例**: `domainDepartments/test` ドキュメントに以下のデータを追加：
+```json
+{
+  "departments": [
+    "test-dep1",
+    "test-dep2",
+    "test-dep3"
+  ]
+}
+```
+
+これにより、`https://voicelog.jp/test/` で表示される部署一覧が管理できます。
+
+**開発環境の場合**:
+開発環境（ドメインIDが`null`の場合は`dev-local`として扱われます）の部署一覧を設定する場合は、`domainDepartments/dev-local` ドキュメントを作成します。
+
+#### Firebase Consoleでの手動設定手順
+
+1. Firebase Consoleにアクセス
+   - [Firestore Database](https://console.firebase.google.com/project/voicelog-dev/firestore)を開く
+
+2. domainDepartmentsコレクションを作成
+   - 「コレクションを開始」をクリック
+   - コレクションID: `domainDepartments` を入力
+
+3. 各ドメインのドキュメントを作成
+   - ドキュメントID: ドメインIDを入力（例: `test`、`dev-local`）
+   - フィールド名: `departments`
+   - タイプ: `配列`
+   - 値: `文字列` の配列
+     - 各部署名を文字列として追加（例: `"test-dep1"`, `"test-dep2"`）
+
+4. セキュリティルールをデプロイ（既に更新済みの場合、再デプロイは不要）
+   ```bash
+   firebase deploy --only firestore:rules
+   ```
+
+**注意事項**:
+- 部署一覧が見つからない場合やエラーが発生した場合は、デフォルト値（`["プロップ", "etc"]`）が使用されます
+- ドメインIDが`null`（ルートパス）の場合は、自動的に`dev-local`として扱われます
 
 ## トラブルシューティング
 

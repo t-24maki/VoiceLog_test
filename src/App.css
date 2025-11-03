@@ -595,7 +595,7 @@ body {
 
 /* 部署セレクト */
 .department-select {
-  width: 728px;
+  width: 100%;
   max-width: 728px;
   padding: 12px 16px;
   font-family: 'Noto Sans JP';
@@ -616,6 +616,7 @@ body {
   background-size: 20px;
   padding-right: 40px;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
 .department-select:hover {
@@ -1240,9 +1241,14 @@ body {
     width: 100%;
     max-width: 600px;
   }
+  .department-group,
   .weather-group,
   .reason-group {
     width: 100%;
+  }
+  .department-select {
+    width: 100%;
+    max-width: 100%;
   }
   .greeting-message,
   .input-count {

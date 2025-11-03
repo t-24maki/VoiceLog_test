@@ -94,6 +94,35 @@ export const callDify = functions.onCall(
   }
 );
 
+/**
+ * Originが許可されているかチェック
+ * @param origin - リクエストのOriginヘッダー
+ * @returns 許可されている場合はtrue
+ */
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin) return false;
+  
+  // 開発環境: localhostを許可
+  if (origin.startsWith("http://localhost:") || origin.startsWith("https://localhost:")) {
+    return true;
+  }
+  
+  // 本番環境: https://voicelog.jp ドメインを許可
+  // Originヘッダーはパス情報を含まないため、ドメイン全体を許可
+  if (origin === "https://voicelog.jp" || origin.startsWith("https://voicelog.jp:")) {
+    return true;
+  }
+  
+  // 環境変数で追加の許可ドメインを指定可能
+  const allowedOrigins = process.env.ALLOWED_ORIGINS;
+  if (allowedOrigins) {
+    const origins = allowedOrigins.split(",").map((o) => o.trim());
+    return origins.includes(origin);
+  }
+  
+  return false;
+}
+
 // HTTPエンドポイント用のHTTPS関数（サブパスSPA用）
 export const apiDify = functions.onRequest(
   {
@@ -102,14 +131,26 @@ export const apiDify = functions.onRequest(
     cors: true
   },
   async (req: Request, res: Response) => {
-    // CORS設定
-    res.set("Access-Control-Allow-Origin", "*");
+    // Originヘッダーを取得
+    const origin = req.headers.origin;
+    
+    // CORS設定: 許可されたOriginのみ許可
+    if (isAllowedOrigin(origin)) {
+      res.set("Access-Control-Allow-Origin", origin!);
+    }
     res.set("Access-Control-Allow-Methods", "POST, OPTIONS");
     res.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.set("Access-Control-Allow-Credentials", "true");
 
     // OPTIONSリクエスト（CORS preflight）
     if (req.method === "OPTIONS") {
       res.status(204).send("");
+      return;
+    }
+
+    // POSTリクエストでもOriginをチェック
+    if (req.method === "POST" && !isAllowedOrigin(origin)) {
+      res.status(403).json({ error: "CORS policy: Origin not allowed" });
       return;
     }
 

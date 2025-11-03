@@ -87,3 +87,47 @@ export const extractDomainIdFromPath = (pathname) => {
   return null
 }
 
+/**
+ * ドメインIDに基づいて部署一覧を取得
+ * @param {string} domainId - ドメインID（URLパスの一部、例: "test", "dev-local"）
+ * @returns {Promise<Array<string>>} - 部署名の配列（取得失敗時はデフォルト値を返す）
+ */
+export const getDomainDepartments = async (domainId) => {
+  try {
+    // ドメインIDがnullの場合は開発環境とみなして"dev-local"を使用
+    const targetDomainId = domainId || 'dev-local'
+    
+    // domainDepartmentsコレクションから該当ドメインのドキュメントを取得
+    const departmentDocRef = doc(db, 'domainDepartments', targetDomainId)
+    const departmentDoc = await getDoc(departmentDocRef)
+
+    if (!departmentDoc.exists()) {
+      console.log(`ドメイン "${targetDomainId}" の部署一覧が見つかりません。デフォルト値を返します。`)
+      // デフォルトの部署一覧を返す
+      return ['プロップ', 'etc']
+    }
+
+    const departmentData = departmentDoc.data()
+    let departments = departmentData.departments || []
+    
+    // 配列でない場合は配列に変換（Firebase Consoleでフィールドタイプを間違えた場合の対応）
+    if (!Array.isArray(departments)) {
+      console.warn('departments is not an array, converting...')
+      departments = Object.values(departments)
+    }
+
+    // 配列が空の場合はデフォルト値を返す
+    if (departments.length === 0) {
+      console.log(`ドメイン "${targetDomainId}" の部署一覧が空です。デフォルト値を返します。`)
+      return ['プロップ', 'etc']
+    }
+
+    console.log(`ドメイン "${targetDomainId}" の部署一覧を取得しました:`, departments)
+    return departments
+  } catch (error) {
+    console.error('部署一覧取得エラー:', error)
+    // エラー時はデフォルト値を返す
+    return ['プロップ', 'etc']
+  }
+}
+
