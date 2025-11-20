@@ -4,6 +4,7 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import jaLocale from '@fullcalendar/core/locales/ja'
 import { DifyClient } from './config/dify'
+import { GptClient } from './config/gpt'
 import { saveVoiceLog, getUserInputCount, getUserVoiceLogs } from './services/voiceLogService'
 import { checkUserAllowed, extractDomainIdFromPath, getDomainDepartments } from './services/userService'
 import { auth, googleProvider } from './config/firebase'
@@ -40,8 +41,11 @@ function TopScreen({ user }) {
   const [inputCount, setInputCount] = useState(0)
   const [isReasonFocused, setIsReasonFocused] = useState(false)
   const [departments, setDepartments] = useState(['プロップ', 'etc']) // 部署一覧のstate
+  const [isMangaGenerating, setIsMangaGenerating] = useState(false)
+  const [mangaImageUrl, setMangaImageUrl] = useState('')
 
   const difyClient = new DifyClient()
+  const gptClient = new GptClient()
 
   // THANK YOU!メッセージまでスクロールする関数
   const scrollToThankYou = () => {
@@ -186,6 +190,107 @@ function TopScreen({ user }) {
     }
   }, [isFadingOut])
 
+/**
+ * 漫画生成処理（非同期で実行） - dall-e-3固定・再試行なし（JS版）
+ * @param {string} inputText
+ */
+const generateManga = async (inputText) => {
+  setIsMangaGenerating(true);
+  setMangaImageUrl("");
+
+  try {
+    if (!inputText || !String(inputText).trim()) {
+      console.warn("空の入力です");
+      setIsMangaGenerating(false);
+      return;
+    }
+
+    console.log("漫画生成 - 送信データ:", inputText);
+
+    // ── Step 1: GPTで「最終プロンプト（英語）」を生成 ─────────────────
+    const systemPrompt =
+      `You are an expert prompt engineer for image generation.
+Return ONLY the final English prompt for an image model.
+The image must be a single 4-panel manga (2x2 grid) with strict layout
+and accurate Japanese text inside speech bubbles only. No explanations.`;
+
+    const userPrompt =
+`Create a single 4-panel manga (2x2 grid) as ONE image.
+
+Theme (summarize briefly): "${String(inputText).trim()}"
+
+STRICT LAYOUT (CRITICAL):
+- Use a black rectangular outer border and equal black inner borders to form a perfect 2x2 grid with uniform margins and right-angle corners.
+- Each panel must contain exactly ONE speech bubble (white fill, black outline, a tail pointing to the speaker).
+- Keep comfortable white space so panels never touch or overlap.
+
+STYLE:
+- Black-and-white manga line art, cute toy poodle as protagonist, slightly thick lines, minimal background, shallow shading, clean whitespace.
+
+JAPANESE TEXT POLICY (CRITICAL):
+- Render Japanese characters accurately using Japanese glyphs only (no Chinese forms).
+- Japanese speech bubbles with Japanese text ONLY.
+- Draw text ONLY inside the speech bubbles. Do NOT draw any other text (no SFX, labels, signs, captions).
+- Max 10 Japanese characters per panel. Bold and readable.
+
+PANEL CONTENT:
+1 (top-left): One short scene description. Speech: a short Japanese line (<=10 chars).
+2 (top-right): One short scene description. Speech: a short Japanese line (<=10 chars).
+3 (bottom-left): One short scene description. Speech: a short Japanese line (<=10 chars).
+4 (bottom-right): One short scene description (punchline). Speech: a short Japanese line (<=10 chars).
+
+FORBIDDEN (CRITICAL):
+- Missing/warped/curved borders, tilted grid, extra text outside bubbles,
+  Latin/Chinese letters, watermarks, logos.
+
+Return ONLY the final English prompt.`;
+
+    console.log("ステップ1: 最終プロンプト生成中...");
+    const promptResult = await gptClient.sendSimpleMessage(
+      userPrompt,
+      systemPrompt,
+      "gpt-4",   // 速度重視なら "gpt-4.1-mini" も可
+      0.3
+    );
+
+    if (!promptResult || !promptResult.success || !promptResult.text) {
+      console.error("プロンプト生成エラー:", (promptResult && (promptResult.error || promptResult.message)) || "unknown");
+      setIsMangaGenerating(false);
+      return;
+    }
+
+    const finalPrompt = promptResult.text.trim();
+    console.log("生成された最終プロンプト(英語):", finalPrompt);
+
+    // ── Step 2: 画像生成（dall-e-3固定 / 再試行なし） ────────────────────
+    const SIZE = "1792x1024"; // 縦長にしたい場合は "1024x1792"
+
+    console.log(`ステップ2: 画像生成中... model=dall-e-3, size=${SIZE}, quality=hd`);
+    const imageResult = await gptClient.generateImage(
+      finalPrompt,
+      "dall-e-3",
+      SIZE,
+      "hd"
+    );
+
+    if (imageResult && imageResult.revisedPrompt) {
+      console.log("revised_prompt:", imageResult.revisedPrompt);
+    }
+
+    if (imageResult && imageResult.success && imageResult.imageUrl) {
+      setMangaImageUrl(imageResult.imageUrl);
+      console.log("画像URL:", imageResult.imageUrl);
+    } else {
+      console.error("画像生成エラー:", (imageResult && (imageResult.error || imageResult.message)) || "unknown");
+    }
+  } catch (err) {
+    console.error("漫画生成エラー:", (err && err.message) || err);
+  } finally {
+    setIsMangaGenerating(false);
+  }
+};
+
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
@@ -203,6 +308,9 @@ function TopScreen({ user }) {
       }
 
       console.log('送信データ:', { input1, input2, input3 }) // デバッグ用
+      
+      // 漫画生成処理を非同期で開始（Dify処理と並行実行）
+      generateManga(input3)
       
       // Dify APIにメッセージを送信
       const result = await difyClient.sendMessage(input1, input2, input3)
@@ -307,6 +415,7 @@ function TopScreen({ user }) {
           </div>
         </div>
       )}
+      
         {/* 入力フォーム */}
         <div className="left-area">
           <div className="input-section">
@@ -449,6 +558,34 @@ function TopScreen({ user }) {
                   </pre>
                 </div>
               )}
+              
+              {/* 漫画画像表示エリア */}
+              <div className="manga-section" style={{ marginTop: '30px', paddingTop: '30px', borderTop: '1px solid #e0e0e0' }}>
+                <div className="simple-message-label" style={{ marginBottom: '15px' }}>4コマ漫画</div>
+                {isMangaGenerating ? (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '40px 20px',
+                    color: '#666',
+                    fontSize: '16px'
+                  }}>
+                    漫画作成中・・・
+                  </div>
+                ) : mangaImageUrl ? (
+                  <div style={{ textAlign: 'center' }}>
+                    <img 
+                      src={mangaImageUrl} 
+                      alt="生成された4コマ漫画" 
+                      style={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        borderRadius: '8px',
+                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                      }}
+                    />
+                  </div>
+                ) : null}
+              </div>
             </div>
           ) : null}
         </div>

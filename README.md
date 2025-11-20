@@ -51,6 +51,12 @@ VITE_FIREBASE_APP_ID=your_app_id_here
 5. 「Firebase SDK snippet」から「構成」を選択
 6. 表示される設定値を`.env`ファイルに設定
 
+#### GPT API設定の取得方法（Firebase Functions経由で使用する場合）
+
+GPT APIを直接使用する場合は、Firebase FunctionsのSecretとして設定します（上記のデプロイ手順を参照）。
+
+**注意**: `.env`ファイルには設定不要です。Firebase FunctionsのSecretとして設定してください。
+
 ### 3. アプリケーションの起動
 
 #### 開発モード（推奨）
@@ -122,6 +128,28 @@ npm run preview
    firebase deploy --only functions
    ```
 
+6. **Firebase FunctionsのSecretを設定（GPT APIを使用する場合）**
+   
+   Firebase FunctionsでGPT APIを使用するには、OpenAI APIキーをSecretとして設定する必要があります。
+   
+   ```bash
+   # OpenAI APIキーをSecretとして設定
+   firebase functions:secrets:set OPENAI_API_KEY
+   ```
+   
+   コマンド実行後、プロンプトが表示されるので、OpenAI APIキーを入力してください。
+   
+   **OpenAI APIキーの取得方法**:
+   1. [OpenAI Platform](https://platform.openai.com/)にログイン
+   2. API Keysセクションに移動
+   3. 「Create new secret key」をクリック
+   4. 生成されたAPIキーをコピー（一度しか表示されないため注意）
+   
+   **注意**: Secretを設定した後、Firebase Functionsを再デプロイする必要があります：
+   ```bash
+   firebase deploy --only functions
+   ```
+
 ### デプロイ後の確認事項
 
 1. **Firestoreデータの設定**
@@ -146,10 +174,86 @@ npm run preview
 
 ## 使用方法
 
+### Dify APIを使用する場合
+
 1. フロントエンド（http://localhost:5173）にアクセス
 2. 部署、評価、詳細情報を入力
 3. 送信ボタンをクリック
 4. Dify APIからの分析結果を確認
+
+### GPT APIを直接使用する場合
+
+フロントエンドからGPT APIを直接呼び出す場合は、`GptClient`クラスを使用します。
+
+#### 基本的な使用例
+
+```javascript
+import { GptClient } from './config/gpt';
+
+// GptClientのインスタンスを作成
+const gptClient = new GptClient();
+
+// シンプルなメッセージを送信
+const result = await gptClient.sendSimpleMessage(
+  'こんにちは、今日の天気について教えてください',
+  'あなたは親切なアシスタントです。', // システムプロンプト（オプション）
+  'gpt-4o-mini', // モデル（オプション、デフォルト: gpt-4o-mini）
+  0.7 // 温度（オプション、デフォルト: 0.7）
+);
+
+if (result.success) {
+  console.log('GPTからの回答:', result.text);
+} else {
+  console.error('エラー:', result.error);
+}
+```
+
+#### 会話形式で使用する場合
+
+```javascript
+import { GptClient } from './config/gpt';
+
+const gptClient = new GptClient();
+
+// メッセージ配列を準備（OpenAI Chat Completions API形式）
+const messages = [
+  {
+    role: 'system',
+    content: 'あなたは親切なアシスタントです。'
+  },
+  {
+    role: 'user',
+    content: 'こんにちは'
+  },
+  {
+    role: 'assistant',
+    content: 'こんにちは！何かお手伝いできることはありますか？'
+  },
+  {
+    role: 'user',
+    content: '今日の天気について教えてください'
+  }
+];
+
+const result = await gptClient.sendMessage(messages);
+
+if (result.success) {
+  console.log('GPTからの回答:', result.text);
+  console.log('使用したトークン数:', result.usage);
+  console.log('使用したモデル:', result.model);
+} else {
+  console.error('エラー:', result.error);
+}
+```
+
+#### 利用可能なモデル
+
+- `gpt-4o-mini`（デフォルト、推奨）
+- `gpt-4o`
+- `gpt-4-turbo`
+- `gpt-3.5-turbo`
+
+その他のモデルについては、[OpenAIのドキュメント](https://platform.openai.com/docs/models)を参照してください。
 
 ## 技術スタック
 
