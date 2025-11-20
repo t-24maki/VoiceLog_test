@@ -27,22 +27,37 @@ export const callDify = functions.onCall(
       throw new functions.HttpsError("invalid-argument", "inputs is required");
     }
 
+    console.log('callDify - 受信したinputs:', JSON.stringify(inputs, null, 2)); // デバッグ用
+    console.log('callDify - inputs.personの値:', inputs.person, '型:', typeof inputs.person); // デバッグ用
+    console.log('callDify - inputsオブジェクトの全キー:', Object.keys(inputs)); // デバッグ用
+
+    // personが必須であることを確認
+    if (inputs.person === undefined || inputs.person === null || inputs.person === '') {
+      console.error('callDify - ERROR: inputs.personが未設定または空です');
+      throw new functions.HttpsError("invalid-argument", "person is required");
+    }
+
     try {
       const endpoint = process.env.DIFY_API_ENDPOINT || "https://dotsconnection.jp/v1/workflows/run";
       const apiKey = difyApiKey.value();
 
       // Dify ワークフローへの入力変数を作成
-      const inputsForDify = {
+      const inputsForDify: any = {
         name: inputs.department,
         feeling: inputs.rating,
-        what: inputs.details
+        what: inputs.details,
+        person: inputs.person  // personは必須なので、必ず値がある
       };
+
+      console.log('callDify - Dify APIに送信するinputsForDify:', JSON.stringify(inputsForDify, null, 2)); // デバッグ用
 
       const requestBody = {
         inputs: inputsForDify,
         response_mode: 'blocking',
         user: request.auth.uid
       };
+
+      console.log('callDify - Dify APIに送信するrequestBody全体:', JSON.stringify(requestBody, null, 2)); // デバッグ用
 
       const r = await fetch(endpoint, {
         method: "POST",
@@ -57,6 +72,15 @@ export const callDify = functions.onCall(
       console.log('Dify API レスポンス:', text);
       
       if (!r.ok) {
+        // Dify APIのエラーレスポンスをパースして、より分かりやすいエラーメッセージを返す
+        try {
+          const errorData = JSON.parse(text);
+          if (errorData.message && errorData.message.includes('person')) {
+            throw new functions.HttpsError("invalid-argument", `Dify APIエラー: ${errorData.message}. personフィールドの最大文字数制限を確認してください。`);
+          }
+        } catch (parseError) {
+          // JSONパースに失敗した場合は、元のエラーメッセージを返す
+        }
         throw new functions.HttpsError("internal", `Dify API error: ${text}`);
       }
 
@@ -189,21 +213,37 @@ export const apiDify = functions.onRequest(
         return;
       }
 
+      console.log('apiDify - 受信したinputs:', JSON.stringify(inputs, null, 2)); // デバッグ用
+      console.log('apiDify - inputs.personの値:', inputs.person, '型:', typeof inputs.person); // デバッグ用
+      console.log('apiDify - inputsオブジェクトの全キー:', Object.keys(inputs)); // デバッグ用
+
+      // personが必須であることを確認
+      if (inputs.person === undefined || inputs.person === null || inputs.person === '') {
+        console.error('apiDify - ERROR: inputs.personが未設定または空です');
+        res.status(400).json({ error: "person is required" });
+        return;
+      }
+
       const endpoint = process.env.DIFY_API_ENDPOINT || "https://dotsconnection.jp/v1/workflows/run";
       const apiKey = difyApiKey.value();
 
       // Dify ワークフローへの入力変数を作成
-      const inputsForDify = {
+      const inputsForDify: any = {
         name: inputs.department,
         feeling: inputs.rating,
-        what: inputs.details
+        what: inputs.details,
+        person: inputs.person  // personは必須なので、必ず値がある
       };
+
+      console.log('apiDify - Dify APIに送信するinputsForDify:', JSON.stringify(inputsForDify, null, 2)); // デバッグ用
 
       const requestBody = {
         inputs: inputsForDify,
         response_mode: 'blocking',
         user: uid
       };
+
+      console.log('apiDify - Dify APIに送信するrequestBody全体:', JSON.stringify(requestBody, null, 2)); // デバッグ用
 
       const r = await fetch(endpoint, {
         method: "POST",

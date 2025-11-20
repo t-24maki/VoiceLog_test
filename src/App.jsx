@@ -12,6 +12,9 @@ import { signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth'
 import './App.css'
 
 
+// 漫画作成機能の有効/無効を切り替えるフラグ
+const ENABLE_MANGA_GENERATION = false; // trueにすると漫画作成機能が有効になります
+
 // 数値を記号に変換する関数
 const convertNumberToSymbol = (number) => {
   switch (number) {
@@ -307,13 +310,28 @@ Return ONLY the final English prompt.`;
         return
       }
 
-      console.log('送信データ:', { input1, input2, input3 }) // デバッグ用
+      // userの値を取得（person変数に使用：挨拶メッセージのxxxと同じ値）
+      const personValue = user ? (user.displayName || user.email.split('@')[0]) : null
+      
+      // personValueがnullの場合はエラー
+      if (!personValue) {
+        setErrorMessage('ユーザー情報が取得できませんでした。ログインし直してください。')
+        setMessage('エラーが発生しました')
+        setShowMessage(true)
+        setIsLoading(false)
+        return
+      }
+      
+      console.log('送信データ:', { input1, input2, input3, person: personValue }) // デバッグ用
+      console.log('userオブジェクト:', user) // デバッグ用
       
       // 漫画生成処理を非同期で開始（Dify処理と並行実行）
-      generateManga(input3)
+      if (ENABLE_MANGA_GENERATION) {
+        generateManga(input3)
+      }
       
       // Dify APIにメッセージを送信
-      const result = await difyClient.sendMessage(input1, input2, input3)
+      const result = await difyClient.sendMessage(input1, input2, input3, personValue)
       
       if (result.success) {
         setMessage('Difyからの回答を受信しました')
@@ -560,32 +578,65 @@ Return ONLY the final English prompt.`;
               )}
               
               {/* 漫画画像表示エリア */}
-              <div className="manga-section" style={{ marginTop: '30px', paddingTop: '30px', borderTop: '1px solid #e0e0e0' }}>
-                <div className="simple-message-label" style={{ marginBottom: '15px' }}>4コマ漫画</div>
-                {isMangaGenerating ? (
+              {ENABLE_MANGA_GENERATION && (
+                <div className="manga-section" style={{ marginTop: '30px', paddingTop: '30px', borderTop: '1px solid #e0e0e0' }}>
+                  <div className="simple-message-label" style={{ marginBottom: '15px' }}>4コマ漫画</div>
                   <div style={{ 
-                    textAlign: 'center', 
-                    padding: '40px 20px',
-                    color: '#666',
-                    fontSize: '16px'
+                    minHeight: '400px', 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    position: 'relative',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '8px',
+                    padding: '20px'
                   }}>
-                    漫画作成中・・・
+                    {isMangaGenerating ? (
+                      <div style={{ 
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '15px'
+                      }}>
+                        <div className="loading-dots" style={{ display: 'flex', gap: '12px' }}>
+                          <div className="loading-dot" style={{ backgroundColor: '#e99c5b' }}></div>
+                          <div className="loading-dot" style={{ backgroundColor: '#e8b870' }}></div>
+                          <div className="loading-dot" style={{ backgroundColor: '#e8d889' }}></div>
+                          <div className="loading-dot" style={{ backgroundColor: '#b8d8a3' }}></div>
+                          <div className="loading-dot" style={{ backgroundColor: '#a3d0a3' }}></div>
+                        </div>
+                        <div style={{ 
+                          color: '#666',
+                          fontSize: '16px',
+                          marginTop: '10px'
+                        }}>
+                          漫画作成中・・・
+                        </div>
+                      </div>
+                    ) : mangaImageUrl ? (
+                      <img 
+                        src={mangaImageUrl} 
+                        alt="生成された4コマ漫画" 
+                        style={{
+                          maxWidth: '100%',
+                          height: 'auto',
+                          borderRadius: '8px',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                        }}
+                      />
+                    ) : (
+                      <div style={{ 
+                        color: '#999',
+                        fontSize: '14px',
+                        textAlign: 'center'
+                      }}>
+                        漫画は生成されていません
+                      </div>
+                    )}
                   </div>
-                ) : mangaImageUrl ? (
-                  <div style={{ textAlign: 'center' }}>
-                    <img 
-                      src={mangaImageUrl} 
-                      alt="生成された4コマ漫画" 
-                      style={{
-                        maxWidth: '100%',
-                        height: 'auto',
-                        borderRadius: '8px',
-                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
-                      }}
-                    />
-                  </div>
-                ) : null}
-              </div>
+                </div>
+              )}
             </div>
           ) : null}
         </div>

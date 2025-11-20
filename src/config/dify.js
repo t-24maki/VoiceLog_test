@@ -8,14 +8,17 @@ export class DifyClient {
     this.callDify = httpsCallable(this.functions, 'callDify');
   }
 
-  async sendMessage(department, rating, details) {
+  async sendMessage(department, rating, details, person) {
     try {
+      console.log('DifyClient.sendMessage呼び出し:', { department, rating, details, person }); // デバッグ用
+      
       // Firebase FunctionsのcallDifyを呼び出し
       const result = await this.callDify({
         inputs: {
           department,
           rating,
-          details
+          details,
+          person
         }
       });
 
