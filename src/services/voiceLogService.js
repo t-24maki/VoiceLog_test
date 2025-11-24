@@ -1,5 +1,5 @@
 import { db } from '../config/firebase'
-import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore'
+import { collection, addDoc, serverTimestamp, query, where, getDocs, doc, getDoc, setDoc } from 'firebase/firestore'
 
 /**
  * VoiceLogのデータをFirestoreに保存
@@ -103,6 +103,125 @@ export const getUserVoiceLogs = async (userUid) => {
   } catch (error) {
     console.error('VoiceLog取得エラー:', error)
     return []
+  }
+}
+
+/**
+ * ユーザーの過去の入力日数を取得
+ * @param {string} userUid - ユーザーのUID
+ * @returns {Promise<number>} - 過去の入力日数
+ */
+export const getUserInputDaysCount = async (userUid) => {
+  try {
+    const voiceLogs = await getUserVoiceLogs(userUid)
+    
+    // 日付ごとにグループ化（日付文字列をキーとして使用）
+    const uniqueDates = new Set()
+    
+    voiceLogs.forEach((log) => {
+      if (log.datetime) {
+        const dateString = log.datetime.toISOString().split('T')[0]
+        uniqueDates.add(dateString)
+      }
+    })
+    
+    const daysCount = uniqueDates.size
+    console.log(`ユーザー ${userUid} の入力日数:`, daysCount)
+    
+    return daysCount
+  } catch (error) {
+    console.error('入力日数取得エラー:', error)
+    return 0
+  }
+}
+
+/**
+ * ユーザーが今日すでに漫画を生成したかチェック
+ * @param {string} userUid - ユーザーのUID
+ * @returns {Promise<boolean>} - 今日すでに生成している場合はtrue
+ */
+export const checkMangaGeneratedToday = async (userUid) => {
+  try {
+    if (!userUid) {
+      return false
+    }
+
+    // manga_generationsコレクションからユーザーのドキュメントを取得
+    const docRef = doc(db, 'manga_generations', userUid)
+    const docSnap = await getDoc(docRef)
+
+    if (!docSnap.exists()) {
+      // ドキュメントが存在しない場合は、まだ生成していない
+      return false
+    }
+
+    const data = docSnap.data()
+    const lastGeneratedDate = data.last_generated_date
+
+    if (!lastGeneratedDate) {
+      return false
+    }
+
+    // FirestoreのタイムスタンプをDate型に変換
+    const lastDate = lastGeneratedDate.toDate ? lastGeneratedDate.toDate() : new Date(lastGeneratedDate)
+    
+    // 今日の日付を取得（時刻を0:00:00に設定）
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    // 最後に生成した日付（時刻を0:00:00に設定）
+    const lastDateOnly = new Date(lastDate)
+    lastDateOnly.setHours(0, 0, 0, 0)
+
+    // 今日と同じ日付かチェック
+    const isToday = today.getTime() === lastDateOnly.getTime()
+    
+    console.log(`ユーザー ${userUid} の漫画生成チェック:`, {
+      lastDate: lastDateOnly.toISOString().split('T')[0],
+      today: today.toISOString().split('T')[0],
+      isToday
+    })
+
+    return isToday
+  } catch (error) {
+    console.error('漫画生成チェックエラー:', error)
+    // エラーが発生した場合は、エラーを再スローして呼び出し元で処理させる
+    throw error
+  }
+}
+
+/**
+ * ユーザーの漫画生成日時を保存
+ * @param {string} userUid - ユーザーのUID
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const saveMangaGenerationDate = async (userUid) => {
+  try {
+    if (!userUid) {
+      return {
+        success: false,
+        error: 'userUid is required'
+      }
+    }
+
+    // manga_generationsコレクションにユーザーのUIDをドキュメントIDとして保存
+    const docRef = doc(db, 'manga_generations', userUid)
+    await setDoc(docRef, {
+      user_uid: userUid,
+      last_generated_date: serverTimestamp()
+    }, { merge: true }) // merge: trueで既存のドキュメントを更新
+
+    console.log(`ユーザー ${userUid} の漫画生成日時を保存しました`)
+    
+    return {
+      success: true
+    }
+  } catch (error) {
+    console.error('漫画生成日時保存エラー:', error)
+    return {
+      success: false,
+      error: error.message
+    }
   }
 }
 

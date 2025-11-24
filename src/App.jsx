@@ -5,7 +5,7 @@ import dayGridPlugin from '@fullcalendar/daygrid'
 import jaLocale from '@fullcalendar/core/locales/ja'
 import { DifyClient } from './config/dify'
 import { GptClient } from './config/gpt'
-import { saveVoiceLog, getUserInputCount, getUserVoiceLogs } from './services/voiceLogService'
+import { saveVoiceLog, getUserInputCount, getUserVoiceLogs, getUserInputDaysCount, checkMangaGeneratedToday, saveMangaGenerationDate } from './services/voiceLogService'
 import { checkUserAllowed, extractDomainIdFromPath, getDomainDepartments } from './services/userService'
 import { auth, googleProvider } from './config/firebase'
 import { signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth'
@@ -13,7 +13,7 @@ import './App.css'
 
 
 // 漫画作成機能の有効/無効を切り替えるフラグ
-const ENABLE_MANGA_GENERATION = false; // trueにすると漫画作成機能が有効になります
+const ENABLE_MANGA_GENERATION = true; // trueにすると漫画作成機能が有効になります
 
 // 数値を記号に変換する関数
 const convertNumberToSymbol = (number) => {
@@ -29,8 +29,8 @@ const convertNumberToSymbol = (number) => {
 
 // トップ画面コンポーネント
 function TopScreen({ user }) {
-  const [input1, setInput1] = useState('プロップ') // デフォルト値を設定
-  const [input2, setInput2] = useState('1')
+  const [input1, setInput1] = useState('') // 部署の初期値は空
+  const [input2, setInput2] = useState('') // お天気の初期値は空
   const [input3, setInput3] = useState('')
   const [message, setMessage] = useState('')
   const [showMessage, setShowMessage] = useState(false)
@@ -46,6 +46,7 @@ function TopScreen({ user }) {
   const [departments, setDepartments] = useState(['プロップ', 'etc']) // 部署一覧のstate
   const [isMangaGenerating, setIsMangaGenerating] = useState(false)
   const [mangaImageUrl, setMangaImageUrl] = useState('')
+  const [mangaLimitMessage, setMangaLimitMessage] = useState('') // 漫画作成制限メッセージ
 
   const difyClient = new DifyClient()
   const gptClient = new GptClient()
@@ -112,14 +113,14 @@ function TopScreen({ user }) {
     if (user && user.uid) {
       const voiceLogs = await getUserVoiceLogs(user.uid)
       
-      // 日付ごとにグループ化し、各日付の最初の記録のみを取得
+      // 日付ごとにグループ化し、各日付の最後の記録のみを取得
       const eventsByDate = {}
       voiceLogs.forEach((log) => {
         if (log.datetime && log.weather_score) {
           const dateString = log.datetime.toISOString().split('T')[0]
           
-          // その日付の記録がまだない、または既存の記録より古い場合に更新
-          if (!eventsByDate[dateString] || log.datetime < eventsByDate[dateString].datetime) {
+          // その日付の記録がまだない、または既存の記録より新しい場合に更新
+          if (!eventsByDate[dateString] || log.datetime > eventsByDate[dateString].datetime) {
             eventsByDate[dateString] = {
               datetime: log.datetime,
               weatherNumber: log.weather_score
@@ -155,14 +156,14 @@ function TopScreen({ user }) {
       setFixedText('デフォルトの固定テキスト')
     }
 
-    // ユーザーの入力回数を取得
-    const fetchInputCount = async () => {
+    // ユーザーの過去の入力日数を取得
+    const fetchInputDaysCount = async () => {
       if (user && user.uid) {
-        const count = await getUserInputCount(user.uid)
-        setInputCount(count)
+        const daysCount = await getUserInputDaysCount(user.uid)
+        setInputCount(daysCount)
       }
     }
-    fetchInputCount()
+    fetchInputDaysCount()
     
     // Firestoreからカレンダーイベントを読み込み
     loadCalendarEvents()
@@ -172,14 +173,24 @@ function TopScreen({ user }) {
       const domainId = extractDomainIdFromPath(window.location.pathname)
       const departmentList = await getDomainDepartments(domainId)
       setDepartments(departmentList)
-      
-      // 現在の選択値が新しい一覧に含まれていない場合、最初の部署を選択
-      if (departmentList.length > 0 && !departmentList.includes(input1)) {
-        setInput1(departmentList[0])
-      }
     }
     fetchDepartments()
   }, [user, loadCalendarEvents])
+
+  // 部署一覧の更新に合わせて初期選択値を設定
+  useEffect(() => {
+    if (!departments.length) {
+      setInput1('')
+      return
+    }
+
+    setInput1((current) => {
+      if (current && departments.includes(current)) {
+        return current
+      }
+      return departments[0]
+    })
+  }, [departments])
 
 
   // フェードアウト完了後にstateをリセット
@@ -196,16 +207,37 @@ function TopScreen({ user }) {
 /**
  * 漫画生成処理（非同期で実行） - dall-e-3固定・再試行なし（JS版）
  * @param {string} inputText
+ * @param {object} user - ユーザー情報
  */
-const generateManga = async (inputText) => {
+const generateManga = async (inputText, user) => {
   setIsMangaGenerating(true);
   setMangaImageUrl("");
+  setMangaLimitMessage("");
 
   try {
     if (!inputText || !String(inputText).trim()) {
       console.warn("空の入力です");
       setIsMangaGenerating(false);
       return;
+    }
+
+    // ユーザーが今日すでに漫画を生成したかチェック
+    if (user && user.uid) {
+      try {
+        const alreadyGenerated = await checkMangaGeneratedToday(user.uid);
+        if (alreadyGenerated) {
+          console.log("今日すでに漫画を生成しています");
+          setMangaLimitMessage("漫画作成は1日1回までです");
+          setIsMangaGenerating(false);
+          return;
+        }
+      } catch (checkError) {
+        // チェックでエラーが発生した場合（権限エラーなど）、API呼び出しを停止
+        console.error("漫画生成チェックでエラーが発生しました:", checkError);
+        setMangaLimitMessage("漫画作成の確認中にエラーが発生しました。しばらく時間をおいてから再度お試しください。");
+        setIsMangaGenerating(false);
+        return;
+      }
     }
 
     console.log("漫画生成 - 送信データ:", inputText);
@@ -283,6 +315,11 @@ Return ONLY the final English prompt.`;
     if (imageResult && imageResult.success && imageResult.imageUrl) {
       setMangaImageUrl(imageResult.imageUrl);
       console.log("画像URL:", imageResult.imageUrl);
+      
+      // 漫画生成成功後、日時を保存
+      if (user && user.uid) {
+        await saveMangaGenerationDate(user.uid);
+      }
     } else {
       console.error("画像生成エラー:", (imageResult && (imageResult.error || imageResult.message)) || "unknown");
     }
@@ -327,7 +364,7 @@ Return ONLY the final English prompt.`;
       
       // 漫画生成処理を非同期で開始（Dify処理と並行実行）
       if (ENABLE_MANGA_GENERATION) {
-        generateManga(input3)
+        generateManga(input3, user)
       }
       
       // Dify APIにメッセージを送信
@@ -358,10 +395,10 @@ Return ONLY the final English prompt.`;
         saveVoiceLog(voiceLogData).then(saveResult => {
           if (saveResult.success) {
             console.log('Firestoreへの保存に成功しました。ID:', saveResult.id)
-            // 保存成功後、入力回数を更新
+            // 保存成功後、入力日数を更新
             if (user && user.uid) {
-              getUserInputCount(user.uid).then(count => {
-                setInputCount(count)
+              getUserInputDaysCount(user.uid).then(daysCount => {
+                setInputCount(daysCount)
               })
             }
             // カレンダーイベントを再読み込み
@@ -429,7 +466,7 @@ Return ONLY the final English prompt.`;
               <div className="loading-dot"></div>
               <div className="loading-dot"></div>
             </div>
-            <p className="loading-text">分析中...</p>
+            <p className="loading-text">20〜40秒お待ちください...</p>
           </div>
         </div>
       )}
@@ -442,7 +479,7 @@ Return ONLY the final English prompt.`;
               <img src="/weather-placeholder.png" alt="お天気プレースホルダー" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
             </div>
             <div className="input-count">
-              {inputCount}回目の入力ありがとうございます
+              {inputCount + 1}日目の入力ありがとうございます
             </div>
             
             <form onSubmit={handleSubmit} className="input-form">
@@ -497,7 +534,11 @@ Return ONLY the final English prompt.`;
               </div>
 
               <div className="submit-button-container">
-                <button type="submit" className="submit-btn" disabled={isLoading}>
+                <button 
+                  type="submit" 
+                  className="submit-btn" 
+                  disabled={isLoading || !input1 || !input2 || !input3.trim()}
+                >
                   {isLoading ? '送信中...' : '送信'}
                 </button>
               </div>
@@ -579,7 +620,7 @@ Return ONLY the final English prompt.`;
               
               {/* 漫画画像表示エリア */}
               {ENABLE_MANGA_GENERATION && (
-                <div className="manga-section" style={{ marginTop: '30px', paddingTop: '30px', borderTop: '1px solid #e0e0e0' }}>
+                <div className="manga-section" style={{ marginTop: '30px', paddingTop: '30px' }}>
                   <div className="simple-message-label" style={{ marginBottom: '15px' }}>4コマ漫画</div>
                   <div style={{ 
                     minHeight: '400px', 
@@ -591,7 +632,16 @@ Return ONLY the final English prompt.`;
                     borderRadius: '8px',
                     padding: '20px'
                   }}>
-                    {isMangaGenerating ? (
+                    {mangaLimitMessage ? (
+                      <div style={{ 
+                        color: '#666',
+                        fontSize: '16px',
+                        textAlign: 'center',
+                        padding: '20px'
+                      }}>
+                        {mangaLimitMessage}
+                      </div>
+                    ) : isMangaGenerating ? (
                       <div style={{ 
                         display: 'flex',
                         flexDirection: 'column',
