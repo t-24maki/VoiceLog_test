@@ -519,7 +519,7 @@ Return ONLY the final English prompt.`;
               </div>
 
               <div className="reason-group">
-                <div className="reason-label">お天気の理由を教えて！</div>
+                <div className="reason-label">今日あったことを教えてください</div>
                 <div className={`reason-textarea-bg ${input3.trim() || isReasonFocused ? 'has-input' : ''}`}></div>
                 <textarea
                   id="input3"
