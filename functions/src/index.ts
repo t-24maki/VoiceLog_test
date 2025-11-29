@@ -845,7 +845,7 @@ export const callGeminiImage = functions.onCall(
       throw new functions.HttpsError("unauthenticated", "Missing authentication");
     }
 
-    const { prompt, aspectRatio, temperature } = request.data;
+    const { prompt, temperature } = request.data;
     if (!prompt) {
       throw new functions.HttpsError("invalid-argument", "prompt is required");
     }
@@ -867,10 +867,11 @@ export const callGeminiImage = functions.onCall(
         }
       };
 
-      // aspectRatioを指定する場合
-      if (aspectRatio) {
-        requestBody.aspectRatio = aspectRatio;
-      }
+      // aspectRatioはgenerationConfig内に配置（API仕様に応じて調整が必要な場合あり）
+      // 現在のAPIではaspectRatioがサポートされていない可能性があるため、一旦コメントアウト
+      // if (aspectRatio) {
+      //   requestBody.generationConfig.aspectRatio = aspectRatio;
+      // }
 
       // Google AI Studio (Gemini) 画像生成APIにリクエスト
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiImageModel}:generateContent?key=${apiKey}`, {

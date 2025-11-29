@@ -25,5 +25,8 @@ const auth = getAuth(app)
 // Google認証プロバイダーの作成
 const googleProvider = new GoogleAuthProvider()
 
+// プロジェクトIDをエクスポート（環境判定に使用）
+export const firebaseProjectId = firebaseConfig.projectId
+
 export { db, auth, googleProvider }
 

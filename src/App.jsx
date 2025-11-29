@@ -8,12 +8,20 @@ import { DifyClient } from './config/dify'
 import { GptClient, GeminiClient } from './config/gpt'
 import { saveVoiceLog, getUserInputCount, getUserVoiceLogs, getUserInputDaysCount, checkMangaGeneratedToday, saveMangaGenerationDate, getUserVoiceLogByDate } from './services/voiceLogService'
 import { checkUserAllowed, extractDomainIdFromPath, getDomainDepartments } from './services/userService'
-import { auth, googleProvider } from './config/firebase'
+import { auth, googleProvider, firebaseProjectId } from './config/firebase'
 
-// 開発環境かどうかを判定（プロジェクトIDで判定）
-const isDevelopment = import.meta.env.VITE_FIREBASE_PROJECT_ID === 'voicelog-dev' || 
-                      !import.meta.env.VITE_FIREBASE_PROJECT_ID || 
-                      import.meta.env.VITE_FIREBASE_PROJECT_ID.includes('dev')
+// 開発環境かどうかを判定
+// 優先順位: 1. 環境変数で明示的に指定 2. FirebaseプロジェクトIDで判定
+const explicitEnv = import.meta.env.VITE_APP_ENV // 'development' または 'production'
+const isDevelopment = explicitEnv === 'development' || 
+                      (explicitEnv !== 'production' && 
+                       (firebaseProjectId === 'voicelog-dev' || 
+                        (firebaseProjectId && firebaseProjectId.includes('dev'))))
+
+// デバッグ用: 実際に使用されているプロジェクトIDと環境判定結果をログ出力
+console.log('[環境判定] 明示的な環境指定:', explicitEnv || '未設定')
+console.log('[環境判定] FirebaseプロジェクトID:', firebaseProjectId)
+console.log('[環境判定] 開発環境:', isDevelopment)
 import { signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth'
 import './App.css'
 
@@ -343,7 +351,8 @@ ${String(inputText).trim()}
 - 可愛いトイプードルが主人公でシンプルな白黒の漫画風イラスト
 - 言葉は大きく読みやすいゴシック体の完璧な日本語で１０文字以内
 - 必ず日本語と中国語の文字を間違えないよう、文字を崩さないようにする
-- 各コマに日本語の吹き出しを入れて、会話形式にする`;
+- 各コマに日本語の吹き出しを入れて、会話形式にする
+- 画像のアスペクト比は1:1（正方形）で作成すること`;
 
     let imageResult;
     if (MANGA_AI_PROVIDER === "gemini") {
@@ -372,13 +381,11 @@ ${String(inputText).trim()}
       console.log("=== プロンプト終了 ===");
 
       // ── Step 2: 生成されたプロンプトでNano Bananaを呼び出して画像生成 ────────────────────
-      console.log(`ステップ2: 画像生成中... model=gemini-2.5-flash-image, aspectRatio=1:1`);
+      // 注意: aspectRatioは現在のAPIではサポートされていないため、プロンプトに含める必要があります
+      console.log(`ステップ2: 画像生成中... model=gemini-2.5-flash-image`);
       imageResult = await mangaAiClient.generateImage(
         finalPrompt,
-        "gemini-2.5-flash-image",
-        undefined, // size (使用しない)
-        undefined, // quality (使用しない)
-        "1:1"      // aspectRatio (temperatureはデフォルト値を使用)
+        "gemini-2.5-flash-image"
       );
     } else {
       // ── Step 1: GPTでDALL-E用のプロンプトを生成 ─────────────────

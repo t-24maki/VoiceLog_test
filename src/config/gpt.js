@@ -240,16 +240,15 @@ export class GeminiClient {
    * @param {string} model - 使用するモデル（オプション、デフォルト: gemini-2.5-flash-image）
    * @param {string} size - 画像サイズ（オプション、Geminiでは使用しない）
    * @param {string} quality - 画像品質（オプション、Geminiでは使用しない）
-   * @param {string} aspectRatio - アスペクト比（オプション、デフォルト: 1:1）
    * @param {number} temperature - 温度パラメータ（オプション、デフォルト: 0.3）
    * @returns {Promise<Object>} レスポンスオブジェクト
+   * 注意: aspectRatioは現在のAPIではサポートされていないため、プロンプトに含める必要があります
    */
-  async generateImage(prompt, model = 'gemini-2.5-flash-image', size = '1024x1024', quality = 'standard', aspectRatio = '1:1', temperature = 0.3) {
+  async generateImage(prompt, model = 'gemini-2.5-flash-image', size = '1024x1024', quality = 'standard', temperature = 0.3) {
     try {
       // Firebase FunctionsのcallGeminiImageを呼び出し
       const result = await this.callGeminiImage({
         prompt: prompt,
-        aspectRatio: aspectRatio,
         temperature: temperature
       });
 
