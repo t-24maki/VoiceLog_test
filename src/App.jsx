@@ -1,19 +1,29 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
+import interactionPlugin from '@fullcalendar/interaction'
 import jaLocale from '@fullcalendar/core/locales/ja'
 import { DifyClient } from './config/dify'
-import { GptClient } from './config/gpt'
-import { saveVoiceLog, getUserInputCount, getUserVoiceLogs, getUserInputDaysCount, checkMangaGeneratedToday, saveMangaGenerationDate } from './services/voiceLogService'
+import { GptClient, GeminiClient } from './config/gpt'
+import { saveVoiceLog, getUserInputCount, getUserVoiceLogs, getUserInputDaysCount, checkMangaGeneratedToday, saveMangaGenerationDate, getUserVoiceLogByDate } from './services/voiceLogService'
 import { checkUserAllowed, extractDomainIdFromPath, getDomainDepartments } from './services/userService'
 import { auth, googleProvider } from './config/firebase'
+
+// 開発環境かどうかを判定（プロジェクトIDで判定）
+const isDevelopment = import.meta.env.VITE_FIREBASE_PROJECT_ID === 'voicelog-dev' || 
+                      !import.meta.env.VITE_FIREBASE_PROJECT_ID || 
+                      import.meta.env.VITE_FIREBASE_PROJECT_ID.includes('dev')
 import { signInWithPopup, onAuthStateChanged, signOut } from 'firebase/auth'
 import './App.css'
 
 
 // 漫画作成機能の有効/無効を切り替えるフラグ
 const ENABLE_MANGA_GENERATION = true; // trueにすると漫画作成機能が有効になります
+
+// 漫画作成で使用するAIモデルを切り替えるフラグ
+// "gpt" または "gemini" を指定（デフォルト: "gpt"）
+const MANGA_AI_PROVIDER = "gemini"; // "gpt" または "gemini"
 
 // 数値を記号に変換する関数
 const convertNumberToSymbol = (number) => {
@@ -47,9 +57,17 @@ function TopScreen({ user }) {
   const [isMangaGenerating, setIsMangaGenerating] = useState(false)
   const [mangaImageUrl, setMangaImageUrl] = useState('')
   const [mangaLimitMessage, setMangaLimitMessage] = useState('') // 漫画作成制限メッセージ
+  const [isMangaModalOpen, setIsMangaModalOpen] = useState(false) // 漫画拡大表示モーダル
+  const [selectedDate, setSelectedDate] = useState(null) // 選択された日付（YYYY-MM-DD形式）
+  const [selectedDateHistory, setSelectedDateHistory] = useState(null) // 選択された日付の履歴データ
+  const [lastSubmittedInput3, setLastSubmittedInput3] = useState('') // 最後に送信されたユーザー入力内容
 
   const difyClient = new DifyClient()
   const gptClient = new GptClient()
+  const geminiClient = new GeminiClient()
+  
+  // 漫画作成で使用するAIクライアントを選択
+  const mangaAiClient = MANGA_AI_PROVIDER === "gemini" ? geminiClient : gptClient
 
   // THANK YOU!メッセージまでスクロールする関数
   const scrollToThankYou = () => {
@@ -147,6 +165,32 @@ function TopScreen({ user }) {
     }
   }, [user])
 
+  // カレンダーの日付クリックイベントを処理する関数
+  const handleDateClick = useCallback(async (dateString) => {
+    if (!user || !user.uid) return
+    
+    // その日付にデータがあるかチェック
+    const event = calendarEvents.find(e => e.date === dateString)
+    if (!event) {
+      return
+    }
+    
+    setSelectedDate(dateString)
+    
+    // 今日の日付かどうかをチェック
+    const today = new Date()
+    const todayString = today.toISOString().split('T')[0]
+    
+    if (dateString === todayString) {
+      // 今日の日付をクリックした場合は、履歴データをクリア（今日の表示にする）
+      setSelectedDateHistory(null)
+    } else {
+      // 過去の日付をクリックした場合は、履歴データを取得
+      const historyData = await getUserVoiceLogByDate(user.uid, dateString)
+      setSelectedDateHistory(historyData)
+    }
+  }, [user, calendarEvents])
+
   useEffect(() => {
     // ローカルストレージから固定テキストを読み込み
     const savedText = localStorage.getItem('fixedText')
@@ -221,8 +265,8 @@ const generateManga = async (inputText, user) => {
       return;
     }
 
-    // ユーザーが今日すでに漫画を生成したかチェック
-    if (user && user.uid) {
+    // ユーザーが今日すでに漫画を生成したかチェック（本番環境のみ）
+    if (!isDevelopment && user && user.uid) {
       try {
         const alreadyGenerated = await checkMangaGeneratedToday(user.uid);
         if (alreadyGenerated) {
@@ -238,75 +282,98 @@ const generateManga = async (inputText, user) => {
         setIsMangaGenerating(false);
         return;
       }
+    } else if (isDevelopment) {
+      console.log("開発環境のため、漫画作成の制限チェックをスキップします");
     }
 
     console.log("漫画生成 - 送信データ:", inputText);
 
-    // ── Step 1: GPTで「最終プロンプト（英語）」を生成 ─────────────────
+    // 共通のsystemPrompt（日本語）
     const systemPrompt =
-      `You are an expert prompt engineer for image generation.
-Return ONLY the final English prompt for an image model.
-The image must be a single 4-panel manga (2x2 grid) with strict layout
-and accurate Japanese text inside speech bubbles only. No explanations.`;
+      `貴方はユーザーの報告を４コマ漫画にする一流のクリエイターです。
+内容を分かりやすく４コマ漫画にしてください`;
 
-    const userPrompt =
-`Create a single 4-panel manga (2x2 grid) as ONE image.
+    // 共通のuserPrompt（日本語）
+    const userPromptBase = `【内容】
+${String(inputText).trim()}
 
-Theme (summarize briefly): "${String(inputText).trim()}"
+【条件】
+- 必ず「4コマ漫画、2x2のグリッド構成」と明記
+- 可愛いトイプードルが主人公でシンプルな白黒の漫画風イラスト
+- 言葉は大きく読みやすいゴシック体の完璧な日本語で１０文字以内
+- 必ず日本語と中国語の文字を間違えないよう、文字を崩さないようにする
+- 各コマに日本語の吹き出しを入れて、会話形式にする`;
 
-STRICT LAYOUT (CRITICAL):
-- Use a black rectangular outer border and equal black inner borders to form a perfect 2x2 grid with uniform margins and right-angle corners.
-- Each panel must contain exactly ONE speech bubble (white fill, black outline, a tail pointing to the speaker).
-- Keep comfortable white space so panels never touch or overlap.
+    let imageResult;
+    if (MANGA_AI_PROVIDER === "gemini") {
+      // ── Step 1: gemini-2.5-flashでNano Banana用のプロンプトを生成 ─────────────────
+      const userPrompt = `${userPromptBase}
 
-STYLE:
-- Black-and-white manga line art, cute toy poodle as protagonist, slightly thick lines, minimal background, shallow shading, clean whitespace.
+上記の内容と条件に基づいて、Nano Banana（gemini-2.5-flash-image）で画像生成するための最適なプロンプトを作成してください。`;
 
-JAPANESE TEXT POLICY (CRITICAL):
-- Render Japanese characters accurately using Japanese glyphs only (no Chinese forms).
-- Japanese speech bubbles with Japanese text ONLY.
-- Draw text ONLY inside the speech bubbles. Do NOT draw any other text (no SFX, labels, signs, captions).
-- Max 10 Japanese characters per panel. Bold and readable.
+      console.log("ステップ1: Nano Banana用プロンプト生成中...");
+      const promptResult = await mangaAiClient.sendSimpleMessage(
+        userPrompt,
+        systemPrompt,
+        "gemini-2.5-flash",
+        0.3
+      );
 
-PANEL CONTENT:
-1 (top-left): One short scene description. Speech: a short Japanese line (<=10 chars).
-2 (top-right): One short scene description. Speech: a short Japanese line (<=10 chars).
-3 (bottom-left): One short scene description. Speech: a short Japanese line (<=10 chars).
-4 (bottom-right): One short scene description (punchline). Speech: a short Japanese line (<=10 chars).
+      if (!promptResult || !promptResult.success || !promptResult.text) {
+        console.error("プロンプト生成エラー:", (promptResult && (promptResult.error || promptResult.message)) || "unknown");
+        setIsMangaGenerating(false);
+        return;
+      }
 
-FORBIDDEN (CRITICAL):
-- Missing/warped/curved borders, tilted grid, extra text outside bubbles,
-  Latin/Chinese letters, watermarks, logos.
+      const finalPrompt = promptResult.text.trim();
+      console.log("=== Nano Banana が使用するプロンプト ===");
+      console.log(finalPrompt);
+      console.log("=== プロンプト終了 ===");
 
-Return ONLY the final English prompt.`;
+      // ── Step 2: 生成されたプロンプトでNano Bananaを呼び出して画像生成 ────────────────────
+      console.log(`ステップ2: 画像生成中... model=gemini-2.5-flash-image, aspectRatio=1:1`);
+      imageResult = await mangaAiClient.generateImage(
+        finalPrompt,
+        "gemini-2.5-flash-image",
+        undefined, // size (使用しない)
+        undefined, // quality (使用しない)
+        "1:1"      // aspectRatio (temperatureはデフォルト値を使用)
+      );
+    } else {
+      // ── Step 1: GPTでDALL-E用のプロンプトを生成 ─────────────────
+      const userPrompt = `${userPromptBase}
 
-    console.log("ステップ1: 最終プロンプト生成中...");
-    const promptResult = await gptClient.sendSimpleMessage(
-      userPrompt,
-      systemPrompt,
-      "gpt-4",   // 速度重視なら "gpt-4.1-mini" も可
-      0.3
-    );
+上記の内容と条件に基づいて、DALL-E（dall-e-3）で画像生成するための最適なプロンプトを作成してください。`;
 
-    if (!promptResult || !promptResult.success || !promptResult.text) {
-      console.error("プロンプト生成エラー:", (promptResult && (promptResult.error || promptResult.message)) || "unknown");
-      setIsMangaGenerating(false);
-      return;
+      console.log("ステップ1: DALL-E用プロンプト生成中...");
+      const promptResult = await mangaAiClient.sendSimpleMessage(
+        userPrompt,
+        systemPrompt,
+        "gpt-4",
+        0.3
+      );
+
+      if (!promptResult || !promptResult.success || !promptResult.text) {
+        console.error("プロンプト生成エラー:", (promptResult && (promptResult.error || promptResult.message)) || "unknown");
+        setIsMangaGenerating(false);
+        return;
+      }
+
+      const finalPrompt = promptResult.text.trim();
+      console.log("=== DALL-E が使用するプロンプト ===");
+      console.log(finalPrompt);
+      console.log("=== プロンプト終了 ===");
+
+      // ── Step 2: 生成されたプロンプトでDALL-Eを呼び出して画像生成 ────────────────────
+      const SIZE = "1792x1024"; // 縦長にしたい場合は "1024x1792"
+      console.log(`ステップ2: 画像生成中... model=dall-e-3, size=${SIZE}, quality=hd`);
+      imageResult = await mangaAiClient.generateImage(
+        finalPrompt,
+        "dall-e-3",
+        SIZE,
+        "hd"
+      );
     }
-
-    const finalPrompt = promptResult.text.trim();
-    console.log("生成された最終プロンプト(英語):", finalPrompt);
-
-    // ── Step 2: 画像生成（dall-e-3固定 / 再試行なし） ────────────────────
-    const SIZE = "1792x1024"; // 縦長にしたい場合は "1024x1792"
-
-    console.log(`ステップ2: 画像生成中... model=dall-e-3, size=${SIZE}, quality=hd`);
-    const imageResult = await gptClient.generateImage(
-      finalPrompt,
-      "dall-e-3",
-      SIZE,
-      "hd"
-    );
 
     if (imageResult && imageResult.revisedPrompt) {
       console.log("revised_prompt:", imageResult.revisedPrompt);
@@ -316,9 +383,11 @@ Return ONLY the final English prompt.`;
       setMangaImageUrl(imageResult.imageUrl);
       console.log("画像URL:", imageResult.imageUrl);
       
-      // 漫画生成成功後、日時を保存
-      if (user && user.uid) {
+      // 漫画生成成功後、日時を保存（本番環境のみ）
+      if (!isDevelopment && user && user.uid) {
         await saveMangaGenerationDate(user.uid);
+      } else if (isDevelopment) {
+        console.log("開発環境のため、漫画生成日時の保存をスキップします");
       }
     } else {
       console.error("画像生成エラー:", (imageResult && (imageResult.error || imageResult.message)) || "unknown");
@@ -375,6 +444,7 @@ Return ONLY the final English prompt.`;
         setDifyResponse(result.text)  // result.textを使用（実際のDify APIレスポンス）
         const parsed = parseDifyResponse(result.text)  // result.textを使用
         setParsedResponse(parsed)
+        setLastSubmittedInput3(input3) // 送信されたユーザー入力内容を保存
         setShowMessage(true)
         
         // Firestoreにデータを保存
@@ -566,7 +636,13 @@ Return ONLY the final English prompt.`;
           )}
           
           {/* カレンダーウィジェット - 送信後に表示 */}
-          {showMessage && <CalendarWidget events={calendarEvents} />}
+          {showMessage && (
+            <CalendarWidget 
+              events={calendarEvents} 
+              onDateClick={handleDateClick}
+              selectedDate={selectedDate}
+            />
+          )}
           
           {showMessage ? (
             <div className="message-display">
@@ -576,31 +652,87 @@ Return ONLY the final English prompt.`;
                 </div>
               )}
               
-              {parsedResponse.feeling && (
-                <div className="simple-message-section">
-                  <div className="simple-message-label">今日の気分</div>
-                  <div className="simple-message-content">
-                    {parsedResponse.feeling}
+              {/* 昨日以前の履歴データを表示 */}
+              {selectedDateHistory ? (
+                <>
+                  {/* 日付を大きく表示 */}
+                  <div style={{
+                    fontFamily: "'Noto Sans JP', sans-serif",
+                    fontStyle: 'normal',
+                    fontWeight: 900,
+                    fontSize: '32px',
+                    lineHeight: '38px',
+                    textAlign: 'center',
+                    letterSpacing: '0.1em',
+                    color: '#EAAA60',
+                    marginBottom: '20px'
+                  }}>
+                    {new Date(selectedDateHistory.datetime).toLocaleDateString('ja-JP', {
+                      month: 'long',
+                      day: 'numeric'
+                    })}
                   </div>
-                </div>
-              )}
-              
-              {parsedResponse.genzyo && (
-                <div className="simple-message-section">
-                  <div className="simple-message-label">チェックポイント</div>
-                  <div className="simple-message-content">
-                    {parsedResponse.genzyo}
-                  </div>
-                </div>
-              )}
-              
-              {parsedResponse.kadai && (
-                <div className="simple-message-section">
-                  <div className="simple-message-label">次へのステップ</div>
-                  <div className="simple-message-content">
-                    {parsedResponse.kadai}
-                  </div>
-                </div>
+                  
+                  {/* ユーザーの入力内容 */}
+                  {selectedDateHistory.weather_reason && (
+                    <div className="simple-message-section">
+                      <div className="simple-message-label">ユーザーの入力内容</div>
+                      <div className="simple-message-content">
+                        {selectedDateHistory.weather_reason}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* チェックポイント */}
+                  {selectedDateHistory.dify_checkpoint && (
+                    <div className="simple-message-section">
+                      <div className="simple-message-label">チェックポイント</div>
+                      <div className="simple-message-content">
+                        {selectedDateHistory.dify_checkpoint}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 次へのステップ */}
+                  {selectedDateHistory.dify_nextstep && (
+                    <div className="simple-message-section">
+                      <div className="simple-message-label">次へのステップ</div>
+                      <div className="simple-message-content">
+                        {selectedDateHistory.dify_nextstep}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* 今日の情報を表示 */
+                <>
+                  {parsedResponse.feeling && (
+                    <div className="simple-message-section">
+                      <div className="simple-message-label">今日の気分</div>
+                      <div className="simple-message-content">
+                        {parsedResponse.feeling}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {parsedResponse.genzyo && (
+                    <div className="simple-message-section">
+                      <div className="simple-message-label">チェックポイント</div>
+                      <div className="simple-message-content">
+                        {parsedResponse.genzyo}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {parsedResponse.kadai && (
+                    <div className="simple-message-section">
+                      <div className="simple-message-label">次へのステップ</div>
+                      <div className="simple-message-content">
+                        {parsedResponse.kadai}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
               
               {/* デバッグ用：解析結果が空の場合の表示 */}
@@ -618,8 +750,8 @@ Return ONLY the final English prompt.`;
                 </div>
               )}
               
-              {/* 漫画画像表示エリア */}
-              {ENABLE_MANGA_GENERATION && (
+              {/* 漫画画像表示エリア - 当日の情報を見ている時だけ表示 */}
+              {ENABLE_MANGA_GENERATION && !selectedDateHistory && (
                 <div className="manga-section" style={{ marginTop: '30px', paddingTop: '30px' }}>
                   <div className="simple-message-label" style={{ marginBottom: '15px' }}>4コマ漫画</div>
                   <div style={{ 
@@ -667,13 +799,17 @@ Return ONLY the final English prompt.`;
                     ) : mangaImageUrl ? (
                       <img 
                         src={mangaImageUrl} 
-                        alt="生成された4コマ漫画" 
+                        alt="4コマ漫画" 
+                        onClick={() => setIsMangaModalOpen(true)}
                         style={{
                           maxWidth: '100%',
                           height: 'auto',
                           borderRadius: '8px',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                          cursor: 'pointer',
+                          transition: 'opacity 0.2s',
                         }}
+                        onMouseEnter={(e) => e.target.style.opacity = '0.8'}
+                        onMouseLeave={(e) => e.target.style.opacity = '1'}
                       />
                     ) : (
                       <div style={{ 
@@ -690,17 +826,81 @@ Return ONLY the final English prompt.`;
             </div>
           ) : null}
         </div>
+
+        {/* 漫画拡大表示モーダル */}
+        {isMangaModalOpen && mangaImageUrl && (
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.9)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 10000,
+              cursor: 'pointer',
+            }}
+            onClick={() => setIsMangaModalOpen(false)}
+          >
+            <img 
+              src={mangaImageUrl} 
+              alt="4コマ漫画（拡大表示）" 
+              style={{
+                maxWidth: '90%',
+                maxHeight: '90%',
+                objectFit: 'contain',
+                borderRadius: '8px',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
     </div>
   )
 }
 
 // カレンダーコンポーネント
-function CalendarWidget({ events = [] }) {
+function CalendarWidget({ events = [], onDateClick, selectedDate }) {
+  const calendarRef = useRef(null)
+
+  useEffect(() => {
+    // 選択された日付のハイライトを更新
+    if (calendarRef.current) {
+      const calendarApi = calendarRef.current.getApi()
+      // すべてのセルからselected-dateクラスを削除
+      const allCells = calendarApi.el.querySelectorAll('.fc-daygrid-day')
+      allCells.forEach(cell => {
+        cell.classList.remove('selected-date')
+        // 画像が入っている日付のセルにカーソルをポインターに設定
+        const dateStr = cell.getAttribute('data-date')
+        if (dateStr) {
+          const event = events.find(e => e.date === dateStr)
+          if (event) {
+            cell.style.cursor = 'pointer'
+          } else {
+            cell.style.cursor = 'default'
+          }
+        }
+      })
+      // 選択された日付にクラスを追加
+      if (selectedDate) {
+        const selectedCell = calendarApi.el.querySelector(`[data-date="${selectedDate}"]`)
+        if (selectedCell) {
+          selectedCell.classList.add('selected-date')
+        }
+      }
+    }
+  }, [selectedDate, events])
+
   return (
     <div className="calendar-widget compact">
       <div className="calendar-container">
         <FullCalendar
-          plugins={[dayGridPlugin]}
+          ref={calendarRef}
+          plugins={[dayGridPlugin, interactionPlugin]}
           initialView="dayGridMonth"
           height="auto"
           headerToolbar={{
@@ -725,6 +925,14 @@ function CalendarWidget({ events = [] }) {
               }
             }
             return { html: eventInfo.event.title }
+          }}
+          dateClick={(info) => {
+            // 画像が入っている日付のみクリック可能
+            const dateString = info.dateStr
+            const event = events.find(e => e.date === dateString)
+            if (event && onDateClick) {
+              onDateClick(dateString)
+            }
           }}
         />
       </div>

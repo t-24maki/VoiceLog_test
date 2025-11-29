@@ -146,3 +146,145 @@ export class GptClient {
   }
 }
 
+// Firebase Functions用のGeminiクライアント（フロントエンド用）
+export class GeminiClient {
+  constructor() {
+    // asia-northeast1リージョンを指定
+    this.functions = getFunctions(undefined, 'asia-northeast1');
+    this.callGemini = httpsCallable(this.functions, 'callGemini');
+    this.callGeminiImage = httpsCallable(this.functions, 'callGeminiImage');
+  }
+
+  /**
+   * Gemini APIにメッセージを送信
+   * @param {Array} messages - メッセージ配列（OpenAI Chat Completions API形式）
+   * @param {string} model - 使用するモデル（オプション、デフォルト: gemini-2.5-flash）
+   * @param {number} temperature - 温度パラメータ（オプション、デフォルト: 0.7）
+   * @returns {Promise<Object>} レスポンスオブジェクト
+   */
+  async sendMessage(messages, model = 'gemini-2.5-flash', temperature = 0.7) {
+    try {
+      // Firebase FunctionsのcallGeminiを呼び出し
+      const result = await this.callGemini({
+        messages: messages,
+        model: model,
+        temperature: temperature
+      });
+
+      // Firebase Functionsから返されるデータを処理
+      const data = result.data;
+      console.log('Firebase Functionsから返されたデータ:', data);
+      
+      return {
+        success: true,
+        message: 'Geminiからの回答を受信しました',
+        text: data.text || data.message,  // Geminiの返却値
+        finishReason: data.finishReason,
+        usage: data.usage,
+        model: data.model,
+        id: data.id
+      };
+    } catch (error) {
+      console.error('Firebase Functions error:', error);
+      
+      // Firebase Functionsのエラーを処理
+      let errorMessage = 'サーバーとの通信中にエラーが発生しました。';
+      
+      if (error.code === 'functions/unauthenticated') {
+        errorMessage = '認証が必要です。ログインしてください。';
+      } else if (error.code === 'functions/invalid-argument') {
+        errorMessage = '入力データが正しくありません。';
+      } else if (error.code === 'functions/internal') {
+        errorMessage = 'サーバー内部エラーが発生しました。';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        error: errorMessage,
+        message: errorMessage
+      };
+    }
+  }
+
+  /**
+   * シンプルなテキストメッセージを送信（システムプロンプト付き）
+   * @param {string} userMessage - ユーザーのメッセージ
+   * @param {string} systemPrompt - システムプロンプト（オプション）
+   * @param {string} model - 使用するモデル（オプション）
+   * @param {number} temperature - 温度パラメータ（オプション）
+   * @returns {Promise<Object>} レスポンスオブジェクト
+   */
+  async sendSimpleMessage(userMessage, systemPrompt = null, model = 'gemini-2.5-flash', temperature = 0.7) {
+    const messages = [];
+    
+    if (systemPrompt) {
+      messages.push({
+        role: 'system',
+        content: systemPrompt
+      });
+    }
+    
+    messages.push({
+      role: 'user',
+      content: userMessage
+    });
+
+    return await this.sendMessage(messages, model, temperature);
+  }
+
+  /**
+   * Gemini画像生成APIで画像を生成
+   * @param {string} prompt - 画像生成用のプロンプト（日本語可）
+   * @param {string} model - 使用するモデル（オプション、デフォルト: gemini-2.5-flash-image）
+   * @param {string} size - 画像サイズ（オプション、Geminiでは使用しない）
+   * @param {string} quality - 画像品質（オプション、Geminiでは使用しない）
+   * @param {string} aspectRatio - アスペクト比（オプション、デフォルト: 1:1）
+   * @param {number} temperature - 温度パラメータ（オプション、デフォルト: 0.3）
+   * @returns {Promise<Object>} レスポンスオブジェクト
+   */
+  async generateImage(prompt, model = 'gemini-2.5-flash-image', size = '1024x1024', quality = 'standard', aspectRatio = '1:1', temperature = 0.3) {
+    try {
+      // Firebase FunctionsのcallGeminiImageを呼び出し
+      const result = await this.callGeminiImage({
+        prompt: prompt,
+        aspectRatio: aspectRatio,
+        temperature: temperature
+      });
+
+      // Firebase Functionsから返されるデータを処理
+      const data = result.data;
+      console.log('Firebase Functionsから返された画像データ:', data);
+      
+      return {
+        success: true,
+        message: '画像が生成されました',
+        imageUrl: data.imageUrl,
+        model: data.model
+      };
+    } catch (error) {
+      console.error('Firebase Functions error:', error);
+      
+      // Firebase Functionsのエラーを処理
+      let errorMessage = 'サーバーとの通信中にエラーが発生しました。';
+      
+      if (error.code === 'functions/unauthenticated') {
+        errorMessage = '認証が必要です。ログインしてください。';
+      } else if (error.code === 'functions/invalid-argument') {
+        errorMessage = '入力データが正しくありません。';
+      } else if (error.code === 'functions/internal') {
+        errorMessage = 'サーバー内部エラーが発生しました。';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      return {
+        success: false,
+        error: errorMessage,
+        message: errorMessage
+      };
+    }
+  }
+}
+

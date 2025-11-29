@@ -1199,6 +1199,15 @@ body {
   font-weight: 600;
 }
 
+/* 選択された日付のハイライト */
+.calendar-container .fc-daygrid-day.selected-date {
+  background-color: rgba(255, 255, 200, 0.5) !important;
+}
+
+.calendar-container .fc-daygrid-day.selected-date .fc-daygrid-day-frame {
+  background-color: rgba(255, 255, 200, 0.5) !important;
+}
+
 /* イベント表示 */
 .calendar-container .fc-event {
   background-color: transparent;
@@ -1210,6 +1219,7 @@ body {
   margin: 0;
   border-radius: 0;
   overflow: visible;
+  pointer-events: none; /* イベント（画像）をクリック不可にして、セル全体をクリック可能にする */
 }
 
 /* カレンダー内のお天気画像 */
@@ -1220,6 +1230,7 @@ body {
   border-radius: 3px;
   display: block;
   margin: 0 auto;
+  pointer-events: none; /* 画像をクリック不可にして、セル全体をクリック可能にする */
 }
 
 /* 他月の日付 */

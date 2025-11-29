@@ -225,3 +225,40 @@ export const saveMangaGenerationDate = async (userUid) => {
   }
 }
 
+/**
+ * 特定日付のユーザーのVoiceLogを取得（その日の最後の入力内容）
+ * @param {string} userUid - ユーザーのUID
+ * @param {string} dateString - 日付文字列（YYYY-MM-DD形式）
+ * @returns {Promise<Object|null>} - VoiceLogのオブジェクト、見つからない場合はnull
+ */
+export const getUserVoiceLogByDate = async (userUid, dateString) => {
+  try {
+    const voiceLogs = await getUserVoiceLogs(userUid)
+    
+    // 指定された日付のログをフィルタリング
+    const logsOnDate = voiceLogs.filter((log) => {
+      if (!log.datetime) return false
+      const logDateString = log.datetime.toISOString().split('T')[0]
+      return logDateString === dateString
+    })
+    
+    if (logsOnDate.length === 0) {
+      console.log(`ユーザー ${userUid} の ${dateString} のVoiceLogが見つかりませんでした`)
+      return null
+    }
+    
+    // その日の最後の入力内容を取得（datetimeでソート）
+    const sortedLogs = logsOnDate.sort((a, b) => {
+      return b.datetime.getTime() - a.datetime.getTime()
+    })
+    
+    const lastLog = sortedLogs[0]
+    console.log(`ユーザー ${userUid} の ${dateString} の最後のVoiceLogを取得しました`)
+    
+    return lastLog
+  } catch (error) {
+    console.error('日付別VoiceLog取得エラー:', error)
+    return null
+  }
+}
+
