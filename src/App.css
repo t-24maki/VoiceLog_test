@@ -1052,7 +1052,6 @@ body {
   }
 }
 
-/* THANK YOU! メッセージ */
 .thank-you-message {
   font-family: 'Noto Sans JP', sans-serif;
   font-style: normal;
@@ -1854,4 +1853,9 @@ body {
   color: #0C0C0C;
   white-space: pre-wrap;
   word-wrap: break-word;
+}
+
+.simple-message-content .highlight-keyword {
+  color: #d08127;
+  font-weight: 700;
 }

@@ -37,6 +37,47 @@ const convertNumberToSymbol = (number) => {
   }
 }
 
+// 特定の文言をオレンジ色の太文字で表示する関数
+const highlightKeywords = (text) => {
+  if (!text) return ''
+  
+  // HTML特殊文字をエスケープ
+  const escapeHtml = (str) => {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;')
+  }
+  
+  const keywords = [
+    '★これからチャレンジすべきこと',
+    '★チャレンジのために解決すべきこと',
+    '★懸念されること',
+    '★アドバイス',
+    '★今日の貴方の気分は',
+    '★ちょっと雑談'
+  ]
+  
+  // まずHTML特殊文字をエスケープ
+  let result = escapeHtml(text)
+  
+  // 改行を<br>タグに変換
+  result = result.replace(/\n/g, '<br>')
+  
+  // キーワードをハイライト
+  keywords.forEach(keyword => {
+    const escapedKeyword = escapeHtml(keyword)
+    const regex = new RegExp(escapedKeyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+    // 表示時は「★」を除去
+    const displayKeyword = escapedKeyword.replace(/★/g, '')
+    result = result.replace(regex, `<span class="highlight-keyword">${displayKeyword}</span>`)
+  })
+  
+  return result
+}
+
 // トップ画面コンポーネント
 function TopScreen({ user }) {
   const [input1, setInput1] = useState('') // 部署の初期値は空
@@ -677,9 +718,7 @@ ${String(inputText).trim()}
                   {selectedDateHistory.weather_reason && (
                     <div className="simple-message-section">
                       <div className="simple-message-label">ユーザーの入力内容</div>
-                      <div className="simple-message-content">
-                        {selectedDateHistory.weather_reason}
-                      </div>
+                      <div className="simple-message-content" dangerouslySetInnerHTML={{ __html: highlightKeywords(selectedDateHistory.weather_reason) }} />
                     </div>
                   )}
                   
@@ -687,9 +726,7 @@ ${String(inputText).trim()}
                   {selectedDateHistory.dify_checkpoint && (
                     <div className="simple-message-section">
                       <div className="simple-message-label">チェックポイント</div>
-                      <div className="simple-message-content">
-                        {selectedDateHistory.dify_checkpoint}
-                      </div>
+                      <div className="simple-message-content" dangerouslySetInnerHTML={{ __html: highlightKeywords(selectedDateHistory.dify_checkpoint) }} />
                     </div>
                   )}
                   
@@ -697,9 +734,7 @@ ${String(inputText).trim()}
                   {selectedDateHistory.dify_nextstep && (
                     <div className="simple-message-section">
                       <div className="simple-message-label">次へのステップ</div>
-                      <div className="simple-message-content">
-                        {selectedDateHistory.dify_nextstep}
-                      </div>
+                      <div className="simple-message-content" dangerouslySetInnerHTML={{ __html: highlightKeywords(selectedDateHistory.dify_nextstep) }} />
                     </div>
                   )}
                 </>
@@ -709,27 +744,21 @@ ${String(inputText).trim()}
                   {parsedResponse.feeling && (
                     <div className="simple-message-section">
                       <div className="simple-message-label">今日の気分</div>
-                      <div className="simple-message-content">
-                        {parsedResponse.feeling}
-                      </div>
+                      <div className="simple-message-content" dangerouslySetInnerHTML={{ __html: highlightKeywords(parsedResponse.feeling) }} />
                     </div>
                   )}
                   
                   {parsedResponse.genzyo && (
                     <div className="simple-message-section">
                       <div className="simple-message-label">チェックポイント</div>
-                      <div className="simple-message-content">
-                        {parsedResponse.genzyo}
-                      </div>
+                      <div className="simple-message-content" dangerouslySetInnerHTML={{ __html: highlightKeywords(parsedResponse.genzyo) }} />
                     </div>
                   )}
                   
                   {parsedResponse.kadai && (
                     <div className="simple-message-section">
                       <div className="simple-message-label">次へのステップ</div>
-                      <div className="simple-message-content">
-                        {parsedResponse.kadai}
-                      </div>
+                      <div className="simple-message-content" dangerouslySetInnerHTML={{ __html: highlightKeywords(parsedResponse.kadai) }} />
                     </div>
                   )}
                 </>
@@ -740,9 +769,7 @@ ${String(inputText).trim()}
                 <div className="debug-info">
                   <h3>デバッグ情報</h3>
                   <p><strong>受信したレスポンス:</strong></p>
-                  <pre style={{background: '#f5f5f5', padding: '10px', borderRadius: '4px', fontSize: '12px'}}>
-                    {difyResponse}
-                  </pre>
+                  <div className="simple-message-content" dangerouslySetInnerHTML={{ __html: highlightKeywords(difyResponse) }} />
                   <p><strong>解析結果:</strong></p>
                   <pre style={{background: '#f5f5f5', padding: '10px', borderRadius: '4px', fontSize: '12px'}}>
                     {JSON.stringify(parsedResponse, null, 2)}
