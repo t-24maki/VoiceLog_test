@@ -136,6 +136,49 @@ export const getUserInputDaysCount = async (userUid) => {
 }
 
 /**
+ * ユーザーの今月の入力日数を取得
+ * @param {string} userUid - ユーザーのUID
+ * @returns {Promise<number>} - 今月の入力日数
+ */
+export const getUserInputDaysCountThisMonth = async (userUid) => {
+  try {
+    const voiceLogs = await getUserVoiceLogs(userUid)
+    
+    // 今月の開始日時と終了日時を取得
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth()
+    const startOfMonth = new Date(year, month, 1)
+    const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59, 999)
+    
+    // 今月のログのみをフィルタリング
+    const logsThisMonth = voiceLogs.filter((log) => {
+      if (!log.datetime) return false
+      const logDate = log.datetime
+      return logDate >= startOfMonth && logDate <= endOfMonth
+    })
+    
+    // 日付ごとにグループ化（日付文字列をキーとして使用）
+    const uniqueDates = new Set()
+    
+    logsThisMonth.forEach((log) => {
+      if (log.datetime) {
+        const dateString = log.datetime.toISOString().split('T')[0]
+        uniqueDates.add(dateString)
+      }
+    })
+    
+    const daysCount = uniqueDates.size
+    console.log(`ユーザー ${userUid} の今月の入力日数:`, daysCount)
+    
+    return daysCount
+  } catch (error) {
+    console.error('今月の入力日数取得エラー:', error)
+    return 0
+  }
+}
+
+/**
  * ユーザーが今日すでに漫画を生成したかチェック
  * @param {string} userUid - ユーザーのUID
  * @returns {Promise<boolean>} - 今日すでに生成している場合はtrue

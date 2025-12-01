@@ -6,7 +6,7 @@ import interactionPlugin from '@fullcalendar/interaction'
 import jaLocale from '@fullcalendar/core/locales/ja'
 import { DifyClient } from './config/dify'
 import { GptClient, GeminiClient } from './config/gpt'
-import { saveVoiceLog, getUserInputCount, getUserVoiceLogs, getUserInputDaysCount, checkMangaGeneratedToday, saveMangaGenerationDate, getUserVoiceLogByDate } from './services/voiceLogService'
+import { saveVoiceLog, getUserInputCount, getUserVoiceLogs, getUserInputDaysCount, getUserInputDaysCountThisMonth, checkMangaGeneratedToday, saveMangaGenerationDate, getUserVoiceLogByDate } from './services/voiceLogService'
 import { checkUserAllowed, extractDomainIdFromPath, getDomainDepartments } from './services/userService'
 import { auth, googleProvider, firebaseProjectId } from './config/firebase'
 
@@ -100,7 +100,8 @@ function TopScreen({ user }) {
   const [errorMessage, setErrorMessage] = useState('')
   const [calendarEvents, setCalendarEvents] = useState([])
   const [parsedResponse, setParsedResponse] = useState({})
-  const [inputCount, setInputCount] = useState(0)
+  const [inputCount, setInputCount] = useState(0) // 過去の合計入力日数（下部の表示用）
+  const [inputDaysCountThisMonth, setInputDaysCountThisMonth] = useState(0) // 今月の入力日数（画像表示用）
   const [isReasonFocused, setIsReasonFocused] = useState(false)
   const [departments, setDepartments] = useState(['プロップ', 'etc']) // 部署一覧のstate
   const [isMangaGenerating, setIsMangaGenerating] = useState(false)
@@ -249,7 +250,7 @@ function TopScreen({ user }) {
       setFixedText('デフォルトの固定テキスト')
     }
 
-    // ユーザーの過去の入力日数を取得
+    // ユーザーの過去の入力日数を取得（下部の表示用）
     const fetchInputDaysCount = async () => {
       if (user && user.uid) {
         const daysCount = await getUserInputDaysCount(user.uid)
@@ -257,6 +258,15 @@ function TopScreen({ user }) {
       }
     }
     fetchInputDaysCount()
+    
+    // ユーザーの今月の入力日数を取得（画像表示用）
+    const fetchInputDaysCountThisMonth = async () => {
+      if (user && user.uid) {
+        const daysCount = await getUserInputDaysCountThisMonth(user.uid)
+        setInputDaysCountThisMonth(daysCount)
+      }
+    }
+    fetchInputDaysCountThisMonth()
     
     // Firestoreからカレンダーイベントを読み込み
     loadCalendarEvents()
@@ -518,6 +528,10 @@ ${String(inputText).trim()}
               getUserInputDaysCount(user.uid).then(daysCount => {
                 setInputCount(daysCount)
               })
+              // 今月の入力日数も更新
+              getUserInputDaysCountThisMonth(user.uid).then(daysCount => {
+                setInputDaysCountThisMonth(daysCount)
+              })
             }
             // カレンダーイベントを再読み込み
             loadCalendarEvents()
@@ -594,7 +608,7 @@ ${String(inputText).trim()}
           <div className="input-section">
             <div className="greeting-message">{user ? (user.displayName || user.email.split('@')[0]) : '◯◯'}さん、お仕事お疲れ様でした！</div>
             <div className="weather-image-container">
-              <img src="/weather-placeholder.png" alt="お天気プレースホルダー" style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+              <img src={`/mona/${Math.min(inputDaysCountThisMonth + 1, 32)}.jpg`} alt="お天気プレースホルダー" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
             </div>
             <div className="input-count">
               {inputCount + 1}日目の入力ありがとうございます
