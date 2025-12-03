@@ -6,19 +6,33 @@ import interactionPlugin from '@fullcalendar/interaction'
 import jaLocale from '@fullcalendar/core/locales/ja'
 import { DifyClient } from './config/dify'
 import { GptClient, GeminiClient } from './config/gpt'
-import { saveVoiceLog, getUserInputCount, getUserVoiceLogs, getUserInputDaysCount, getUserInputDaysCountThisMonth, checkMangaGeneratedToday, saveMangaGenerationDate, getUserVoiceLogByDate } from './services/voiceLogService'
+import { saveVoiceLog, getUserInputCount, getUserVoiceLogs, getUserInputDaysCount, getUserInputDaysCountThisMonth, checkMangaGeneratedToday, saveMangaGenerationDate, getUserVoiceLogByDate, getUserLastDepartment } from './services/voiceLogService'
 import { checkUserAllowed, extractDomainIdFromPath, getDomainDepartments } from './services/userService'
 import { auth, googleProvider, firebaseProjectId } from './config/firebase'
 
 // 開発環境かどうかを判定
-// 優先順位: 1. 環境変数で明示的に指定 2. FirebaseプロジェクトIDで判定
+// 優先順位: 1. URLベースの判定（最も確実） 2. 環境変数で明示的に指定 3. FirebaseプロジェクトIDで判定
+const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
 const explicitEnv = import.meta.env.VITE_APP_ENV // 'development' または 'production'
-const isDevelopment = explicitEnv === 'development' || 
-                      (explicitEnv !== 'production' && 
-                       (firebaseProjectId === 'voicelog-dev' || 
-                        (firebaseProjectId && firebaseProjectId.includes('dev'))))
+
+// 本番環境のURLかどうかをチェック（voicelog.jpドメインの場合は本番環境）
+const isProductionUrl = hostname === 'voicelog.jp' || hostname.endsWith('.voicelog.jp')
+
+// 開発環境の判定
+// URLベースの判定が最優先: voicelog.jpの場合は本番環境（開発環境ではない）
+// localhostやその他の場合は開発環境と判定
+const isDevelopment = !isProductionUrl && (
+  explicitEnv === 'development' || 
+  (explicitEnv !== 'production' && 
+   (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('localhost') ||
+    firebaseProjectId === 'voicelog-dev' || 
+    (firebaseProjectId && firebaseProjectId.includes('dev')))
+  )
+)
 
 // デバッグ用: 実際に使用されているプロジェクトIDと環境判定結果をログ出力
+console.log('[環境判定] ホスト名:', hostname || '未取得')
+console.log('[環境判定] 本番URL:', isProductionUrl)
 console.log('[環境判定] 明示的な環境指定:', explicitEnv || '未設定')
 console.log('[環境判定] FirebaseプロジェクトID:', firebaseProjectId)
 console.log('[環境判定] 開発環境:', isDevelopment)
@@ -27,7 +41,7 @@ import './App.css'
 
 
 // 漫画作成機能の有効/無効を切り替えるフラグ
-const ENABLE_MANGA_GENERATION = true; // trueにすると漫画作成機能が有効になります
+const ENABLE_MANGA_GENERATION = false; // trueにすると漫画作成機能が有効になります
 
 // 漫画作成で使用するAIモデルを切り替えるフラグ
 // "gpt" または "gemini" を指定（デフォルト: "gpt"）
@@ -280,20 +294,37 @@ function TopScreen({ user }) {
     fetchDepartments()
   }, [user, loadCalendarEvents])
 
-  // 部署一覧の更新に合わせて初期選択値を設定
+  // 部署一覧の更新に合わせて初期選択値を設定（最後に選択した部署を優先）
   useEffect(() => {
     if (!departments.length) {
       setInput1('')
       return
     }
 
-    setInput1((current) => {
-      if (current && departments.includes(current)) {
-        return current
+    // 最後に選択した部署を取得して設定
+    const fetchLastDepartment = async () => {
+      if (user && user.uid) {
+        const lastDepartment = await getUserLastDepartment(user.uid)
+        
+        // 最後に選択した部署が存在し、現在の部署一覧に含まれている場合
+        if (lastDepartment && departments.includes(lastDepartment)) {
+          setInput1(lastDepartment)
+          return
+        }
       }
-      return departments[0]
-    })
-  }, [departments])
+      
+      // 最後の部署が取得できない、または部署一覧に含まれていない場合は
+      // 現在の値が有効ならそのまま、そうでなければ最初の部署を選択
+      setInput1((current) => {
+        if (current && departments.includes(current)) {
+          return current
+        }
+        return departments[0]
+      })
+    }
+    
+    fetchLastDepartment()
+  }, [departments, user])
 
 
   // フェードアウト完了後にstateをリセット
@@ -611,7 +642,7 @@ ${String(inputText).trim()}
               <img src={`/mona/${Math.min(inputDaysCountThisMonth + 1, 32)}.jpg`} alt="お天気プレースホルダー" style={{width: '100%', height: '100%', objectFit: 'contain'}} />
             </div>
             <div className="input-count">
-              {inputCount + 1}日目の入力ありがとうございます
+              今月{inputDaysCountThisMonth + 1}日目の入力ありがとうございます<br />（通算{inputCount + 1}日目）
             </div>
             
             <form onSubmit={handleSubmit} className="input-form">
@@ -651,7 +682,12 @@ ${String(inputText).trim()}
               </div>
 
               <div className="reason-group">
-                <div className="reason-label">今日あったことを教えてください</div>
+                <div className="reason-label">
+                  今日あったことを教えてください
+                  <span className="tooltip-icon">?
+                    <span className="tooltip-text">XXXXX</span>
+                  </span>
+                </div>
                 <div className={`reason-textarea-bg ${input3.trim() || isReasonFocused ? 'has-input' : ''}`}></div>
                 <textarea
                   id="input3"

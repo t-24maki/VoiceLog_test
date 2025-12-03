@@ -305,3 +305,34 @@ export const getUserVoiceLogByDate = async (userUid, dateString) => {
   }
 }
 
+/**
+ * ユーザーが最後に選択した部署を取得
+ * @param {string} userUid - ユーザーのUID
+ * @returns {Promise<string|null>} - 最後に選択した部署名、見つからない場合はnull
+ */
+export const getUserLastDepartment = async (userUid) => {
+  try {
+    const voiceLogs = await getUserVoiceLogs(userUid)
+    
+    if (voiceLogs.length === 0) {
+      console.log(`ユーザー ${userUid} のVoiceLogが見つかりませんでした`)
+      return null
+    }
+    
+    // datetimeでソートして最新のログを取得
+    const sortedLogs = voiceLogs.sort((a, b) => {
+      return b.datetime.getTime() - a.datetime.getTime()
+    })
+    
+    const lastLog = sortedLogs[0]
+    const lastDepartment = lastLog.division || null
+    
+    console.log(`ユーザー ${userUid} の最後の部署:`, lastDepartment)
+    
+    return lastDepartment
+  } catch (error) {
+    console.error('最後の部署取得エラー:', error)
+    return null
+  }
+}
+
