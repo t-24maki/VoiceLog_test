@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
     // 環境変数からDify設定を取得
     const DIFY_API_KEY = process.env.DIFY_API_KEY;
-    const DIFY_API_ENDPOINT = process.env.DIFY_API_ENDPOINT || 'https://dotsconnection.jp/v1/chat-messages';
+    const DIFY_API_ENDPOINT = process.env.DIFY_API_ENDPOINT || 'https://api.dify.ai/v1/workflows/run';
     const DIFY_WORKSPACE_ID = process.env.DIFY_WORKSPACE_ID;
 
     // APIキーの確認

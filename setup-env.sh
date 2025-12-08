@@ -45,7 +45,7 @@ server_port=${server_port:-"3001"}
 cat > .env << EOF
 # Dify API設定
 DIFY_API_KEY=$dify_api_key
-DIFY_API_ENDPOINT=https://dotsconnection.jp/v1/chat-messages
+DIFY_API_ENDPOINT=https://api.dify.ai/v1/workflows/run
 DIFY_WORKSPACE_ID=$dify_workspace_id
 
 # フロントエンドURL

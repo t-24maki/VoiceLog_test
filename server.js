@@ -49,7 +49,7 @@ const DIFY_CONFIG = {
   // ワークフローアプリの正しいエンドポイント
   get API_ENDPOINT() {
     return process.env.DIFY_API_ENDPOINT || 
-           `https://dotsconnection.jp/v1/workflows/run`;
+           `https://api.dify.ai/v1/workflows/run`;
   }
 };
 

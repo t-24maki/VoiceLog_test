@@ -20,7 +20,7 @@
       ],
       "runtime": "nodejs20",
       "environmentVariables": {
-        "DIFY_API_ENDPOINT": "https://dotsconnection.jp/v1/workflows/run"
+        "DIFY_API_ENDPOINT": "https://api.dify.ai/v1/workflows/run"
       }
     }
   ],

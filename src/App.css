@@ -702,6 +702,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  z-index: 10001;
 }
 
 .reason-label::before {
@@ -729,6 +730,7 @@ body {
   margin-left: 5px;
   align-self: baseline;
   transform: translateY(0.7px);
+  z-index: 10001;
 }
 
 .tooltip-text {
@@ -740,12 +742,14 @@ body {
   transform: translateX(-50%);
   background-color: #333;
   color: #fff;
-  text-align: center;
+  text-align: left;
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 14px;
-  white-space: nowrap;
-  z-index: 1000;
+  white-space: normal;
+  width: 300px;
+  line-height: 1.6;
+  z-index: 10000;
   transition: opacity 0.3s, visibility 0.3s;
   margin-bottom: 5px;
 }

@@ -41,7 +41,7 @@ export const callDify = functions.onCall(
     }
 
     try {
-      const endpoint = process.env.DIFY_API_ENDPOINT || "https://dotsconnection.jp/v1/workflows/run";
+      const endpoint = process.env.DIFY_API_ENDPOINT || "https://api.dify.ai/v1/workflows/run";
       const apiKey = difyApiKey.value();
 
       // Dify ワークフローへの入力変数を作成
@@ -80,6 +80,12 @@ export const callDify = functions.onCall(
           const errorData = JSON.parse(text);
           if (errorData.message && errorData.message.includes('person')) {
             throw new functions.HttpsError("invalid-argument", `Dify APIエラー: ${errorData.message}. personフィールドの最大文字数制限を確認してください。`);
+          }
+          if (errorData.message && errorData.message.includes('not published')) {
+            throw new functions.HttpsError("failed-precondition", `Dify APIエラー: ワークフローが公開されていません。Difyのダッシュボードでワークフローを公開してください。詳細: ${errorData.message}`);
+          }
+          if (errorData.code === 'invalid_param' && errorData.message) {
+            throw new functions.HttpsError("invalid-argument", `Dify APIエラー: ${errorData.message}`);
           }
         } catch (parseError) {
           // JSONパースに失敗した場合は、元のエラーメッセージを返す
@@ -227,7 +233,7 @@ export const apiDify = functions.onRequest(
         return;
       }
 
-      const endpoint = process.env.DIFY_API_ENDPOINT || "https://dotsconnection.jp/v1/workflows/run";
+      const endpoint = process.env.DIFY_API_ENDPOINT || "https://api.dify.ai/v1/workflows/run";
       const apiKey = difyApiKey.value();
 
       // Dify ワークフローへの入力変数を作成
@@ -261,8 +267,22 @@ export const apiDify = functions.onRequest(
       console.log('Dify API レスポンス:', text);
       
       if (!r.ok) {
-        res.status(r.status).json({ error: `Dify API error: ${text}` });
-        return;
+        // Dify APIのエラーレスポンスをパースして、より分かりやすいエラーメッセージを返す
+        try {
+          const errorData = JSON.parse(text);
+          let errorMessage = `Dify API error: ${text}`;
+          if (errorData.message && errorData.message.includes('not published')) {
+            errorMessage = `Dify APIエラー: ワークフローが公開されていません。Difyのダッシュボードでワークフローを公開してください。詳細: ${errorData.message}`;
+          } else if (errorData.code === 'invalid_param' && errorData.message) {
+            errorMessage = `Dify APIエラー: ${errorData.message}`;
+          }
+          res.status(r.status).json({ error: errorMessage });
+          return;
+        } catch (parseError) {
+          // JSONパースに失敗した場合は、元のエラーメッセージを返す
+          res.status(r.status).json({ error: `Dify API error: ${text}` });
+          return;
+        }
       }
 
       const data = JSON.parse(text);

@@ -685,7 +685,7 @@ ${String(inputText).trim()}
                 <div className="reason-label">
                   今日あったことを教えてください
                   <span className="tooltip-icon">?
-                    <span className="tooltip-text">XXXXX</span>
+                    <span className="tooltip-text">今日あったこと、できたこと、困ったこと、相談したいこと、嬉しかったこと、腹が立ったことなどをメモ感覚で入力してください。箇条書きや話し言葉でも大丈夫。AIが自然な文章に整えます。</span>
                   </span>
                 </div>
                 <div className={`reason-textarea-bg ${input3.trim() || isReasonFocused ? 'has-input' : ''}`}></div>
