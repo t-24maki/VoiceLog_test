@@ -765,7 +765,7 @@ ${String(inputText).trim()}
                     color: '#EAAA60',
                     marginBottom: '20px'
                   }}>
-                    {new Date(selectedDateHistory.datetime).toLocaleDateString('ja-JP', {
+                    {new Date(selectedDate + 'T00:00:00').toLocaleDateString('ja-JP', {
                       month: 'long',
                       day: 'numeric'
                     })}

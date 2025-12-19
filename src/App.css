@@ -1723,7 +1723,7 @@ body {
   bottom: 0;
   background: linear-gradient(90deg, #e99c5b 0%, #e8d889 50%, #a3d0a3 100%);
   backdrop-filter: blur(10px);
-  z-index: 9999;
+  z-index: 10002;
   display: flex;
   align-items: center;
   justify-content: center;

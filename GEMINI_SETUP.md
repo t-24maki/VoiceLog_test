@@ -113,3 +113,4 @@ firebase deploy --only functions
 - [Gemini API ドキュメント](https://ai.google.dev/docs)
 - [Firebase Functions Secrets ドキュメント](https://firebase.google.com/docs/functions/config-env?hl=ja)
 
+
